@@ -454,21 +454,19 @@ const FONT_FAMILIES = {
 
 /* ── 小部件磁吸：桌面边角 / 跟随前台应用窗口 ─────────────── */
 
-const widgetPrefs = { opacity: 100, darkMode: 'system', alwaysOnTop: true, snap: 'top-right', fontSize: 100 }
+const widgetPrefs = { opacity: 100, darkMode: 'system', snap: 'top-right', fontSize: 100 }
 let snapTimer = null
 
 function applyWidgetAppearance(prefs) {
   if (prefs && typeof prefs === 'object') {
     if (Number.isFinite(Number(prefs.opacity))) widgetPrefs.opacity = Math.min(100, Math.max(20, Number(prefs.opacity)))
     if (['system', 'light', 'dark'].includes(prefs.darkMode)) widgetPrefs.darkMode = prefs.darkMode
-    if (typeof prefs.alwaysOnTop === 'boolean') widgetPrefs.alwaysOnTop = prefs.alwaysOnTop
     if (typeof prefs.snap === 'string') widgetPrefs.snap = prefs.snap
     if (Number.isFinite(Number(prefs.fontSize))) widgetPrefs.fontSize = Math.min(140, Math.max(80, Number(prefs.fontSize)))
   }
   if (!widgetWindow || widgetWindow.isDestroyed()) return
   widgetWindow.setOpacity(widgetPrefs.opacity / 100)
-  widgetWindow.setAlwaysOnTop(widgetPrefs.alwaysOnTop, 'screen-saver')
-  widgetWindow.webContents.send('widget:appearance', widgetPrefs)
+  pushWidgetData()
   applySnap()
 }
 
@@ -527,7 +525,6 @@ function createWidgetWindow() {
     frame: false,
     transparent: true,
     backgroundColor: '#00000000',
-    alwaysOnTop: true,
     resizable: true,
     skipTaskbar: true,
     show: false,
@@ -542,10 +539,9 @@ function createWidgetWindow() {
   else widgetWindow.loadFile(path.join(__dirname, '../dist/widget.html'))
 
   widgetWindow.once('ready-to-show', () => {
-    pushWidgetData()
     applyWidgetAppearance()
     setTimeout(() => void applySnap(), 60)
-    if (widgetShouldShow) widgetWindow.show()
+    if (widgetShouldShow) widgetWindow.showInactive()
   })
   widgetWindow.on('closed', () => { widgetWindow = null })
 }
@@ -556,7 +552,7 @@ function setWidgetVisible(visible) {
   widgetShouldShow = Boolean(visible)
   if (visible) {
     if (!widgetWindow || widgetWindow.isDestroyed()) createWidgetWindow()
-    else { pushWidgetData(); widgetWindow.show() }
+    else { pushWidgetData(); widgetWindow.showInactive() }
   } else if (widgetWindow && !widgetWindow.isDestroyed()) {
     widgetWindow.hide()
   }

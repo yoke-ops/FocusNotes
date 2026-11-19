@@ -243,7 +243,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
               <header className="settings-head"><h2>桌面小部件</h2><p>独立悬浮小窗，随手完成今天的事。</p></header>
               <div className="settings-group">
                 <label className="settings-row">
-                  <span><strong>显示桌面小部件</strong><small>置顶悬浮窗，快速勾选与添加任务</small></span>
+                  <span><strong>显示桌面小部件</strong><small>桌面浮窗，可被其他应用窗口覆盖</small></span>
                   <button className={`switch${props.widgetEnabled ? ' on' : ''}`} onClick={() => props.onWidgetEnabled(!props.widgetEnabled)} aria-label="显示桌面小部件"><i /></button>
                 </label>
               </div>
@@ -295,17 +295,12 @@ export function SettingsDialog(props: SettingsDialogProps) {
                   </select>
                 </label>
                 <label className="settings-row">
-                  <span><strong><Type size={12} /> 文字大小</strong><small>小组件整体 UI 缩放</small></span>
+                  <span><strong><Type size={12} /> 文字大小</strong><small>调整小组件的字号</small></span>
                   <div className="range-wrap">
                     <input type="range" min={80} max={140} step={5} value={props.preferences.widget.fontSize}
                       onChange={(event) => props.onWidgetPreferences({ fontSize: Number(event.target.value) })} />
                     <output>{props.preferences.widget.fontSize}%</output>
                   </div>
-                </label>
-                <label className="settings-row">
-                  <span><strong><Pin size={12} /> 窗口置顶</strong><small>始终显示在其他窗口之上</small></span>
-                  <button className={`switch${props.preferences.widget.alwaysOnTop ? ' on' : ''}`}
-                    onClick={() => props.onWidgetPreferences({ alwaysOnTop: !props.preferences.widget.alwaysOnTop })} aria-label="小组件置顶"><i /></button>
                 </label>
               </div>
               <div className="settings-group">

@@ -53,16 +53,22 @@
   }
 }
 
-.widget-window { font-size: calc(10px * var(--w-scale, 1)); }
-.widget-window .widget-section-title { font-size: calc(9.5px * var(--w-scale, 1)); }
-.widget-window .widget-task-title { font-size: calc(9.5px * var(--w-scale, 1)); }
+.widget-window {
+  --w-font-scale: calc(.95 * var(--w-scale, 1));
+  font-size: calc(10px * var(--w-font-scale));
+}
+.widget-window .widget-section-title,
+.widget-window .widget-task-title { font-size: calc(9.5px * var(--w-font-scale)); }
 .widget-window .widget-task-time, .widget-window .widget-composer input,
 .widget-window .widget-habit, .widget-window .widget-countdown,
-.widget-window .widget-assistant, .widget-window .widget-assistant-btn { font-size: calc(9px * var(--w-scale, 1)); }
+.widget-window .widget-assistant, .widget-window .widget-assistant-btn { font-size: calc(9px * var(--w-font-scale)); }
 .widget-window .widget-agenda-row, .widget-window .widget-empty,
-.widget-window .widget-habit-streak, .widget-window .habit-check { font-size: calc(8.5px * var(--w-scale, 1)); }
-.widget-window .widget-countdown strong { font-size: calc(14px * var(--w-scale, 1)); }
-.widget-window .widget-quadrant strong { font-size: calc(13px * var(--w-scale, 1)); }
+.widget-window .widget-habit-streak, .widget-window .habit-check,
+.widget-window .widget-countdown span { font-size: calc(8.5px * var(--w-font-scale)); }
+.widget-window .widget-message { font-size: calc(8px * var(--w-font-scale)); }
+.widget-window .widget-quadrant small { font-size: calc(7.5px * var(--w-font-scale)); }
+.widget-window .widget-countdown strong { font-size: calc(14px * var(--w-font-scale)); }
+.widget-window .widget-quadrant strong { font-size: calc(13px * var(--w-font-scale)); }
 
 * { box-sizing: border-box; }
 html, body, #widget-root { height: 100%; margin: 0; }

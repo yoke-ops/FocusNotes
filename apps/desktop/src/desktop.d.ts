@@ -56,7 +56,6 @@ export interface WidgetItem {
 export interface WidgetAppearance {
   opacity: number
   darkMode: 'system' | 'light' | 'dark'
-  alwaysOnTop: boolean
   snap: import('@focusnotes/core').WidgetSnap
   fontSize: number
   fontFamily: string
