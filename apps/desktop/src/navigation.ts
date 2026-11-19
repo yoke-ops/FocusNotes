@@ -10,6 +10,7 @@ export type ViewId =
   | 'quadrant'
   | 'assistant'
   | 'widgets'
+  | 'notes'
   | `list:${string}`
   | `tag:${string}`
 

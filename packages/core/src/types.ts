@@ -97,7 +97,7 @@ export type WidgetSnap = 'none' | 'top-left' | 'top-right' | 'bottom-left' | 'bo
 export type FontId = 'system' | 'source-han-sans' | 'source-han-serif' | 'pingfang' | 'microsoft-yahei' | 'georgia'
 
 /** 左侧功能栏可排序/隐藏的视图。 */
-export type NavId = 'today' | 'pomodoro' | 'habits' | 'calendar' | 'quadrant' | 'widgets' | 'search' | 'assistant'
+export type NavId = 'today' | 'pomodoro' | 'habits' | 'calendar' | 'quadrant' | 'widgets' | 'search' | 'assistant' | 'notes'
 
 export interface WidgetPreferences {
   opacity: number

@@ -44,7 +44,7 @@ export const DEFAULT_PREFERENCES: WorkspacePreferences = {
   sound: true,
   font: 'system',
   widget: { opacity: 100, darkMode: 'system', alwaysOnTop: true, snap: 'top-right', fontSize: 100 },
-  navOrder: ['today', 'pomodoro', 'habits', 'calendar', 'quadrant', 'widgets', 'search', 'assistant'],
+  navOrder: ['today', 'pomodoro', 'habits', 'calendar', 'quadrant', 'widgets', 'search', 'assistant', 'notes'],
   navHidden: [],
 }
 
@@ -57,6 +57,7 @@ export const NAV_ITEMS: Array<{ id: NavId; label: string }> = [
   { id: 'widgets', label: '概览小部件' },
   { id: 'search', label: '搜索' },
   { id: 'assistant', label: 'AI 助手' },
+  { id: 'notes', label: '备忘录' },
 ]
 
 export const FONT_OPTIONS: Array<{ id: FontId; label: string; family: string; category: '无衬线' | '衬线' | '系统' }> = [

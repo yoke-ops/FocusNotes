@@ -21,6 +21,7 @@ import { QuadrantView } from './components/QuadrantView'
 import { CalendarView } from './components/CalendarView'
 import { AssistantView } from './components/AssistantView'
 import { WidgetView } from './components/WidgetView'
+import { NotesView } from './components/NotesView'
 import { SearchDialog } from './components/SearchDialog'
 import { SettingsDialog } from './components/SettingsDialog'
 import { ProfileDialog, type ActionResult } from './components/ProfileDialog'
@@ -368,6 +369,10 @@ export default function App() {
       onEdit={openTask}
       onUpdate={(id, draft) => void run(ws.updateTask(id, draft))}
     />
+  } else if (view === 'notes') {
+    title = '备忘录'
+    subtitle = ws.profile.name
+    content = <NotesView key={ws.profile.id} profileId={ws.profile.id} />
   } else if (view === 'assistant') {
     title = 'AI 助手'
     subtitle = '本地运行，数据不出设备'

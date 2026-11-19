@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, Notification, dialog, shell, net, screen } = require('electron')
+const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, Notification, dialog, shell, net, screen, clipboard } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs')
 const { randomUUID } = require('node:crypto')
@@ -90,6 +90,8 @@ function profileDocs() {
 }
 
 function saveDoc(doc) { writeJson(path.join(profileDir(), `${doc.id}.json`), doc) }
+
+const MAX_MEMO_LENGTH = 1_000_000
 
 function uniqueName(base, docs) {
   const trimmed = String(base || '').trim().slice(0, 40) || '新记录'
@@ -665,6 +667,29 @@ function registerIpc() {
     }
   })
 
+  ipcMain.handle('memo:read', (event, profileId) => {
+    if (event.sender !== mainWindow?.webContents) throw new Error('无法读取备忘录。')
+    const doc = ensureProfiles().find((item) => item.id === profileId)
+    if (!doc) throw new Error('找不到所选档案。')
+    return typeof doc.memo === 'string' ? doc.memo : ''
+  })
+
+  ipcMain.handle('memo:write', (event, profileId, memo) => {
+    if (event.sender !== mainWindow?.webContents) throw new Error('无法保存备忘录。')
+    if (typeof memo !== 'string' || memo.length > MAX_MEMO_LENGTH) throw new Error('备忘录不能超过 100 万字符。')
+    const doc = ensureProfiles().find((item) => item.id === profileId)
+    if (!doc) throw new Error('找不到所选档案。')
+    if ((doc.memo ?? '') === memo) return
+    saveDoc({ ...doc, memo, updatedAt: new Date().toISOString() })
+  })
+
+  ipcMain.handle('memo:copy', (event, memo) => {
+    if (event.sender !== mainWindow?.webContents || typeof memo !== 'string' || memo.length > MAX_MEMO_LENGTH) {
+      throw new Error('无法复制备忘录。')
+    }
+    clipboard.writeText(memo)
+  })
+
   ipcMain.handle('workspace:read', () => {
     const doc = activeDoc()
     return {
@@ -845,7 +870,7 @@ function registerIpc() {
     if (target.canceled || !target.filePath) return { ok: false, canceled: true, message: '已取消导出。' }
     fs.writeFileSync(target.filePath, JSON.stringify({
       app: 'FocusNotes', version: 2, exportedAt: new Date().toISOString(), profile: doc.name,
-      todos: doc.todos, extras: doc.extras ?? null,
+      todos: doc.todos, extras: doc.extras ?? null, memo: doc.memo ?? '',
     }, null, 2), 'utf8')
     return { ok: true, message: `已导出到 ${target.filePath}` }
   })
@@ -861,17 +886,19 @@ function registerIpc() {
     try {
       const raw = JSON.parse(fs.readFileSync(picked.filePaths[0], 'utf8'))
       const todos = normalizeTodos(Array.isArray(raw) ? raw : raw && raw.todos)
-      if (!todos || !todos.length) return { ok: false, message: '文件中没有可导入的待办。' }
+      const memo = typeof raw?.memo === 'string' ? raw.memo : ''
+      if (memo.length > MAX_MEMO_LENGTH) return { ok: false, message: '备忘录不能超过 100 万字符。' }
+      if (!todos || (!todos.length && !memo)) return { ok: false, message: '文件中没有可导入的待办或备忘录。' }
       const docs = ensureProfiles()
       const baseName = path.basename(picked.filePaths[0], '.json').replace(/^FocusNotes-/, '').replace(/-\d{8}$/, '')
       const now = new Date().toISOString()
       const doc = {
         id: newProfileId(), name: uniqueName(baseName || '导入的记录', docs), createdAt: now, updatedAt: now,
-        todos, extras: raw && typeof raw === 'object' && raw.extras && typeof raw.extras === 'object' ? raw.extras : null,
+        todos, memo, extras: raw && typeof raw === 'object' && raw.extras && typeof raw.extras === 'object' ? raw.extras : null,
       }
       saveDoc(doc)
       setActive(doc.id)
-      return { ok: true, message: `已导入 ${todos.length} 项待办。`, ...payload() }
+      return { ok: true, message: memo ? `已导入备忘录和 ${todos.length} 项待办。` : `已导入 ${todos.length} 项待办。`, ...payload() }
     } catch {
       return { ok: false, message: '文件无法解析，请选择 FocusNotes 导出的 JSON 记录。' }
     }

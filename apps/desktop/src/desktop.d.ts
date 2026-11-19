@@ -98,6 +98,11 @@ declare global {
       testReminder(): void
       notify(payload: { title: string; body: string; silent?: boolean }): void
       setWidgetEnabled(enabled: boolean): void
+      memo: {
+        read(profileId: string): Promise<string>
+        write(profileId: string, body: string): Promise<void>
+        copy(body: string): Promise<void>
+      }
       exportPersonal(kind: 'lists' | 'habits' | 'history' | 'all'): Promise<{ ok: boolean; message?: string; canceled?: boolean }>
       importPersonal(): Promise<{ ok: boolean; message?: string; canceled?: boolean }>
       widget: {

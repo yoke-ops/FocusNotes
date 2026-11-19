@@ -27,6 +27,11 @@ contextBridge.exposeInMainWorld('focusDesktop', {
   testReminder: () => ipcRenderer.send('reminders:test'),
   notify: (payload) => ipcRenderer.send('app:notify', payload),
   setWidgetEnabled: (enabled) => ipcRenderer.send('widget:set-enabled', enabled),
+  memo: {
+    read: (profileId) => ipcRenderer.invoke('memo:read', profileId),
+    write: (profileId, body) => ipcRenderer.invoke('memo:write', profileId, body),
+    copy: (body) => ipcRenderer.invoke('memo:copy', body),
+  },
   exportPersonal: (kind) => ipcRenderer.invoke('personal:export', kind),
   importPersonal: () => ipcRenderer.invoke('personal:import'),
   widget: {
