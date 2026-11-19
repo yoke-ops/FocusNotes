@@ -199,6 +199,34 @@ export function SettingsDialog(props: SettingsDialogProps) {
                   <button className={`switch${props.alwaysOnTop ? ' on' : ''}`} onClick={() => props.onAlwaysOnTop(!props.alwaysOnTop)} aria-label="窗口置顶"><i /></button>
                 </label>
               </div>
+              <div className="settings-group">
+                <span className="settings-label"><LayoutGrid size={12} /> 左侧功能栏</span>
+                <div className="nav-list">
+                  {props.preferences.navOrder.map((id, index) => {
+                    const meta = NAV_ITEMS.find((item) => item.id === id)
+                    const hidden = props.preferences.navHidden.includes(id)
+                    return <div key={id} className={`nav-row${hidden ? ' hidden' : ''}`}>
+                      <button className="mini-action" disabled={index === 0}
+                        onClick={() => {
+                          const next = [...props.preferences.navOrder]
+                          ;[next[index - 1], next[index]] = [next[index]!, next[index - 1]!]
+                          props.onNavigation({ navOrder: next })
+                        }} aria-label="上移"><ArrowUp size={11} /></button>
+                      <button className="mini-action" disabled={index === props.preferences.navOrder.length - 1}
+                        onClick={() => {
+                          const next = [...props.preferences.navOrder]
+                          ;[next[index], next[index + 1]] = [next[index + 1]!, next[index]!]
+                          props.onNavigation({ navOrder: next })
+                        }} aria-label="下移"><ArrowDown size={11} /></button>
+                      <span className="nav-label">{meta?.label ?? id}</span>
+                      <button className="mini-action" onClick={() => props.onNavigation({
+                        navHidden: hidden ? props.preferences.navHidden.filter((item) => item !== id) : [...props.preferences.navHidden, id],
+                      })} aria-label={hidden ? '显示' : '隐藏'}>{hidden ? <EyeOff size={11} /> : <Eye size={11} />}</button>
+                    </div>
+                  })}
+                </div>
+                <p className="settings-hint">用箭头调整顺序，点击眼睛图标显示或隐藏功能项。</p>
+              </div>
             </>
           )}
 
@@ -246,34 +274,6 @@ export function SettingsDialog(props: SettingsDialogProps) {
                   <span><strong>显示桌面小部件</strong><small>桌面浮窗，可被其他应用窗口覆盖</small></span>
                   <button className={`switch${props.widgetEnabled ? ' on' : ''}`} onClick={() => props.onWidgetEnabled(!props.widgetEnabled)} aria-label="显示桌面小部件"><i /></button>
                 </label>
-              </div>
-              <div className="settings-group">
-                <span className="settings-label"><LayoutGrid size={12} /> 左侧功能栏</span>
-                <div className="nav-list">
-                  {props.preferences.navOrder.map((id, index) => {
-                    const meta = NAV_ITEMS.find((item) => item.id === id)
-                    const hidden = props.preferences.navHidden.includes(id)
-                    return <div key={id} className={`nav-row${hidden ? ' hidden' : ''}`}>
-                      <button className="mini-action" disabled={index === 0}
-                        onClick={() => {
-                          const next = [...props.preferences.navOrder]
-                          ;[next[index - 1], next[index]] = [next[index]!, next[index - 1]!]
-                          props.onNavigation({ navOrder: next })
-                        }} aria-label="上移"><ArrowUp size={11} /></button>
-                      <button className="mini-action" disabled={index === props.preferences.navOrder.length - 1}
-                        onClick={() => {
-                          const next = [...props.preferences.navOrder]
-                          ;[next[index], next[index + 1]] = [next[index + 1]!, next[index]!]
-                          props.onNavigation({ navOrder: next })
-                        }} aria-label="下移"><ArrowDown size={11} /></button>
-                      <span className="nav-label">{meta?.label ?? id}</span>
-                      <button className="mini-action" onClick={() => props.onNavigation({
-                        navHidden: hidden ? props.preferences.navHidden.filter((item) => item !== id) : [...props.preferences.navHidden, id],
-                      })} aria-label={hidden ? '显示' : '隐藏'}>{hidden ? <EyeOff size={11} /> : <Eye size={11} />}</button>
-                    </div>
-                  })}
-                </div>
-                <p className="settings-hint">用箭头调整顺序，点击眼睛图标显示或隐藏功能项。</p>
               </div>
               <div className="settings-group">
                 <span className="settings-label"><Palette size={12} /> 小组件外观</span>
