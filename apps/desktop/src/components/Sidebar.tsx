@@ -4,6 +4,7 @@ import { addDays, dateKey, type TodoItem, type TodoList } from '@focusnotes/core
 import { listViewId, tagViewId, type ViewId } from '../navigation'
 
 interface SidebarProps {
+  visible: boolean
   view: ViewId
   todos: TodoItem[]
   lists: TodoList[]
@@ -14,7 +15,7 @@ interface SidebarProps {
 function countActive(todos: TodoItem[]): number {
   return todos.filter((todo) => !todo.completed && !todo.deleted).length
 }
-export function Sidebar({ view, todos, lists, onNavigate, onAddList }: SidebarProps) {
+export function Sidebar({ visible, view, todos, lists, onNavigate, onAddList }: SidebarProps) {
   const [adding, setAdding] = useState(false)
   const [name, setName] = useState('')
 
@@ -64,7 +65,7 @@ export function Sidebar({ view, todos, lists, onNavigate, onAddList }: SidebarPr
   ]
 
   return (
-    <aside className="sidebar">
+    <aside id="workspace-sidebar" className="sidebar" hidden={!visible} aria-label="任务清单">
       <div className="brand">
         <span className="brand-mark"><NotebookPen size={17} /></span>
         <div className="brand-text">

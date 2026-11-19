@@ -1,8 +1,10 @@
-import { Maximize2, Minus, NotebookPen, PanelLeftClose, Search, Settings2, X } from 'lucide-react'
+import { Maximize2, Minimize2, Minus, NotebookPen, PanelLeftClose, PanelLeftOpen, Search, Settings2, X } from 'lucide-react'
 
 interface TopBarProps {
   title: string
   subtitle: string
+  sidebarVisible: boolean
+  onToggleSidebar: () => void
   onSearch: () => void
   onSettings: () => void
   onMinimize: () => void
@@ -10,12 +12,20 @@ interface TopBarProps {
   onMini: () => void
 }
 
-export function TopBar({ title, subtitle, onSearch, onSettings, onMinimize, onClose, onMini }: TopBarProps) {
+export function TopBar({ title, subtitle, sidebarVisible, onToggleSidebar, onSearch, onSettings, onMinimize, onClose, onMini }: TopBarProps) {
+  const SidebarIcon = sidebarVisible ? PanelLeftClose : PanelLeftOpen
+  const sidebarLabel = sidebarVisible ? '收起清单栏' : '展开清单栏'
   return (
     <header className="topbar">
-      <div className="topbar-title">
-        <h1>{title}</h1>
-        <p>{subtitle}</p>
+      <div className="topbar-leading">
+        <button className="icon-button sidebar-toggle" onClick={onToggleSidebar} title={sidebarLabel}
+          aria-label={sidebarLabel} aria-expanded={sidebarVisible} aria-controls="workspace-sidebar">
+          <SidebarIcon size={18} />
+        </button>
+        <div className="topbar-title">
+          <h1>{title}</h1>
+          <p>{subtitle}</p>
+        </div>
       </div>
       <div className="topbar-actions">
         <button className="icon-button" onClick={onSearch} title="搜索（Ctrl+K）" aria-label="搜索">
@@ -25,7 +35,7 @@ export function TopBar({ title, subtitle, onSearch, onSettings, onMinimize, onCl
           <Settings2 size={17} />
         </button>
         <button className="icon-button" onClick={onMini} title="切换到迷你窗口" aria-label="切换到迷你窗口">
-          <PanelLeftClose size={17} />
+          <Minimize2 size={17} />
         </button>
         <span className="topbar-divider" />
         <button className="icon-button" onClick={onMinimize} title="最小化到托盘" aria-label="最小化到托盘">

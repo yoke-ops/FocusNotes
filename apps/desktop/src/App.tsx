@@ -57,6 +57,23 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [profilesOpen, setProfilesOpen] = useState(false)
   const [error, setError] = useState('')
+  const [compactWorkspace, setCompactWorkspace] = useState(() => window.matchMedia('(max-width: 940px)').matches)
+  const [sidebarPreference, setSidebarPreference] = useState(() => window.localStorage.getItem('focusnotes.sidebar'))
+  const sidebarVisible = sidebarPreference === null ? !compactWorkspace : sidebarPreference === 'open'
+
+  useEffect(() => {
+    const query = window.matchMedia('(max-width: 940px)')
+    const update = () => setCompactWorkspace(query.matches)
+    query.addEventListener('change', update)
+    update()
+    return () => query.removeEventListener('change', update)
+  }, [])
+
+  function toggleSidebar() {
+    const next = sidebarVisible ? 'closed' : 'open'
+    setSidebarPreference(next)
+    window.localStorage.setItem('focusnotes.sidebar', next)
+  }
 
   const [mini, setMini] = useState(() => window.localStorage.getItem('focusnotes.mode') === 'mini')
   const [opacity, setOpacity] = useState(() => {
@@ -502,11 +519,13 @@ export default function App() {
       navOrder={ws.extras.preferences.navOrder}
       navHidden={ws.extras.preferences.navHidden}
     />
-    <Sidebar view={view} todos={todos} lists={lists} onNavigate={setView} onAddList={addList} />
+    <Sidebar visible={sidebarVisible} view={view} todos={todos} lists={lists} onNavigate={setView} onAddList={addList} />
     <main className="workspace">
       <TopBar
         title={title}
         subtitle={subtitle}
+        sidebarVisible={sidebarVisible}
+        onToggleSidebar={toggleSidebar}
         onSearch={() => setSearchOpen(true)}
         onSettings={() => setSettingsOpen(true)}
         onMini={() => setMini(true)}

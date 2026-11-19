@@ -34,7 +34,7 @@ const NAV_DEFS: Record<NavId, { id: NavId; label: string; icon: typeof CalendarD
   habits: { id: 'habits', label: '习惯', icon: Flame },
   calendar: { id: 'calendar', label: '日历', icon: CalendarDays },
   quadrant: { id: 'quadrant', label: '四象限', icon: LayoutGrid },
-  widgets: { id: 'widgets', label: '概览小部件', icon: Gauge },
+  widgets: { id: 'widgets', label: '概览', icon: Gauge },
   search: { id: 'search', label: '搜索', icon: Search },
   assistant: { id: 'assistant', label: 'AI 助手', icon: Sparkles },
   notes: { id: 'notes', label: '备忘录', icon: NotebookPen },

@@ -54,7 +54,7 @@ export const NAV_ITEMS: Array<{ id: NavId; label: string }> = [
   { id: 'habits', label: '习惯' },
   { id: 'calendar', label: '日历' },
   { id: 'quadrant', label: '四象限' },
-  { id: 'widgets', label: '概览小部件' },
+  { id: 'widgets', label: '概览' },
   { id: 'search', label: '搜索' },
   { id: 'assistant', label: 'AI 助手' },
   { id: 'notes', label: '备忘录' },
