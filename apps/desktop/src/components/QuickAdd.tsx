@@ -85,7 +85,7 @@ export function QuickAdd({ lists, defaultListId, defaultDueAt, placeholder = '�
           value={text}
           onChange={(event) => setText(event.target.value)}
           onKeyDown={(event) => {
-            if (event.key === 'Enter') void submit()
+            if (event.key === 'Enter' && !event.nativeEvent.isComposing) void submit()
           }}
           placeholder={placeholder}
           aria-label="快速添加任务"

@@ -605,6 +605,35 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .task-deleted-mark { flex: 0 0 auto; padding: 2px 6px; color: var(--danger); font-size: 9.5px; border-radius: 4px; background: var(--danger-soft); }
 .completed-section { padding-top: 2px; border-top: 1px solid var(--border-soft); }
 
+/* Today keeps the capture field in reach and gives due work the most space. */
+.today-composer {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  background: var(--page);
+  box-shadow: 0 -24px var(--page);
+}
+.today-composer .quick-add { margin-bottom: 0; }
+.today-composer .quick-add-field { min-height: 52px; }
+.today-composer input { font-size: 14px; }
+.today-composer input::placeholder { color: var(--muted); }
+.today-tasks .section-heading { min-height: 34px; font-size: 14px; }
+.today-tasks .section-heading small { color: var(--muted); font-size: 12px; }
+.today-task-group + .today-task-group { margin-top: 15px; }
+.today-group-title { margin: 0 0 6px; color: var(--muted); font-size: 12px; font-weight: 600; }
+.today-group-title.overdue { color: var(--danger); }
+.today-tasks .task-title { font-family: inherit; font-size: 14px; }
+.today-tasks .task-meta, .today-tasks .task-list-name, .today-tasks .task-notes { font-size: 12px; }
+.today-tasks .task-meta { color: var(--muted); }
+.today-tasks .empty-state { min-height: 124px; padding: 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.today-tasks .empty-state h3 { margin: 0; }
+.today-tasks .empty-state .ghost-button { margin-top: 10px; }
+.today-tasks .section-heading.as-button { margin-bottom: 4px; }
+.today-tasks .section-heading.as-button .chevron { margin-left: auto; }
+.today-tasks .section-heading.as-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
 /* ── Pomodoro ──────────────────────────────── */
 .pomodoro-layout { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 16px; max-width: 1040px; margin: 0 auto; align-items: start; }
 .pomodoro-main { display: flex; align-items: center; flex-direction: column; padding: 22px 22px 26px; }

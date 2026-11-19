@@ -232,23 +232,26 @@ export default function App() {
   let content: ReactNode = null
 
   if (view === 'today') {
-    subtitle = `${new Date().toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' })} · ${counts.today} 件待办`
+    const endOfToday = new Date()
+    endOfToday.setHours(23, 59, 59, 999)
+    const defaultDueAt = endOfToday.toISOString()
     const todayTasks = open.filter((todo) => todo.dueAt && dateKey(todo.dueAt) <= todayKey)
     const todayCompleted = completed.filter((todo) => todo.completedAt && dateKey(todo.completedAt) === todayKey)
     content = <TaskListView
+      key="today"
+      today
       tasks={todayTasks}
       completedTasks={todayCompleted}
       lists={lists}
       defaultListId="inbox"
-      showQuickAdd
+      defaultDueAt={defaultDueAt}
       countdown={active.filter((todo) => todo.tags.includes('纪念日') && todo.dueAt && !todo.completed).slice(0, 4)}
-      emptyTitle="今天还没有安排"
-      emptyHint="用一句话添加第一件事，或者享受一段留白。"
+      emptyTitle="今天没有待办"
       onAdd={ws.addTask}
       onToggle={(id) => void run(ws.toggleTask(id))}
       onEdit={openTask}
       onDelete={(id) => setDeleting(todos.find((todo) => todo.id === id) ?? null)}
-      onNewTask={() => openNew()}
+      onNewTask={() => openNew({ defaultDueAt })}
     />
   } else if (view === 'recent') {
     const weekAgo = new Date(Date.now() - 6 * 86_400_000).toISOString()
