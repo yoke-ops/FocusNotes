@@ -54,6 +54,7 @@ export interface WidgetItem {
 }
 
 export interface WidgetAppearance {
+  palette?: string
   opacity: number
   darkMode: 'system' | 'light' | 'dark'
   snap: import('@focusnotes/core').WidgetSnap
@@ -110,7 +111,7 @@ declare global {
         toggle(id: string): Promise<{ ok: boolean; error?: string }>
         toggleHabit(habitId: string, day: string): Promise<{ ok: boolean; error?: string }>
         resize(width: number, height: number): void
-        appearance(prefs: import('@focusnotes/core').WidgetPreferences): void
+        appearance(prefs: import('@focusnotes/core').WidgetPreferences & { palette: import('./palettes').PaletteId }): void
         add(title: string): Promise<{ ok: boolean; id?: string; error?: string }>
         openMain(view?: string): void
         close(): void

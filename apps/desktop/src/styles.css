@@ -117,6 +117,38 @@
   --warn-text: #e5b567;
 }
 
+:root[data-palette] {
+  --accent: var(--palette-accent);
+  --accent-hover: color-mix(in srgb, var(--accent) 88%, var(--text));
+  --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
+  --accent-contrast: var(--palette-on-accent);
+  --page: var(--palette-page);
+  --rail: var(--palette-rail);
+  --sidebar: color-mix(in srgb, var(--rail) 62%, var(--page));
+  --surface: var(--palette-surface);
+  --surface-2: color-mix(in srgb, var(--surface) 64%, var(--page));
+  --surface-3: color-mix(in srgb, var(--surface) 48%, var(--rail));
+  --text: var(--palette-text);
+  --text-soft: color-mix(in srgb, var(--text) 78%, var(--muted));
+  --muted: var(--palette-muted);
+  --faint: color-mix(in srgb, var(--muted) 88%, var(--surface));
+  --border: color-mix(in srgb, var(--muted) 24%, var(--surface));
+  --border-soft: color-mix(in srgb, var(--muted) 15%, var(--surface));
+  --check-border: color-mix(in srgb, var(--muted) 65%, var(--surface));
+  --switch-off: color-mix(in srgb, var(--muted) 33%, var(--surface));
+  --hover: color-mix(in srgb, var(--text) 8%, transparent);
+  --hover-soft: color-mix(in srgb, var(--text) 5%, transparent);
+  --scrollbar: color-mix(in srgb, var(--muted) 42%, var(--surface));
+  --danger: var(--palette-danger);
+  --danger-soft: color-mix(in srgb, var(--danger) 12%, transparent);
+  --important-text: var(--accent);
+  --important-border: color-mix(in srgb, var(--accent) 45%, transparent);
+  --important-bg: var(--accent-soft);
+  --urgent-text: var(--danger);
+  --urgent-border: color-mix(in srgb, var(--danger) 45%, transparent);
+  --urgent-bg: var(--danger-soft);
+}
+
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
 body { overflow: hidden; background: transparent; }
@@ -1035,6 +1067,28 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .settings-row select { width: auto; min-width: 92px; padding: 5px 8px; font-size: 10.5px; }
 .row-arrow { color: var(--accent); font-size: 9.5px; white-space: nowrap; }
 .theme-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; padding-bottom: 12px; }
+.palette-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 8px; padding: 10px 0 4px; }
+.palette-card {
+  position: relative;
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+  padding: 8px;
+  color: var(--text);
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.palette-card:hover { border-color: var(--check-border); }
+.palette-card.active { border-color: var(--accent); background: var(--accent-soft); }
+.palette-swatches { display: flex; overflow: hidden; width: 100%; height: 19px; border: 1px solid var(--border); border-radius: 4px; }
+.palette-swatches i { flex: 1; }
+.palette-check { position: absolute; inset: auto 8px 8px auto; color: var(--accent); }
+:root[data-palette] :is(.rail-avatar, .brand-mark, .assistant-avatar) {
+  color: var(--accent-contrast);
+  background: var(--accent);
+}
 .effect-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; padding: 12px 0; }
 .effect-card { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; padding: 9px; color: var(--muted); text-align: left; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); transition: all .16s; }
 .effect-card > svg { color: var(--faint); }

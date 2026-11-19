@@ -22,6 +22,7 @@ import { CalendarView } from './components/CalendarView'
 import { AssistantView } from './components/AssistantView'
 import { WidgetView } from './components/WidgetView'
 import { NotesView } from './components/NotesView'
+import { applyPalette, resolvePalette } from './palettes'
 import { SearchDialog } from './components/SearchDialog'
 import { SettingsDialog } from './components/SettingsDialog'
 import { ProfileDialog, type ActionResult } from './components/ProfileDialog'
@@ -87,6 +88,7 @@ export default function App() {
   })
   const [widgetEnabled, setWidgetEnabled] = useState(() => loadBool('focusnotes.widget', true))
   const [themeMode, setThemeMode] = useState<ThemeMode>(loadThemeMode)
+  const [palette, setPalette] = useState(() => resolvePalette(window.localStorage.getItem('focusnotes.palette')).id)
   const [dark, setDark] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches)
   const [remindEnabled, setRemindEnabled] = useState(() => loadBool('focusnotes.remind', true))
   const [leadMinutes, setLeadMinutes] = useState(() => Number(window.localStorage.getItem('focusnotes.remindMinutes') ?? 15))
@@ -122,8 +124,13 @@ export default function App() {
     const prefs = ws.extras.preferences
     const family = FONT_OPTIONS.find((item) => item.id === prefs.font)?.family || FONT_OPTIONS[0]!.family
     document.documentElement.style.setProperty('--app-font', family)
-    window.focusDesktop?.widget.appearance(prefs.widget)
-  }, [ws.extras.preferences.font, ws.extras.preferences.widget])
+    window.focusDesktop?.widget.appearance({ ...prefs.widget, palette })
+  }, [ws.extras.preferences.font, ws.extras.preferences.widget, palette])
+
+  useEffect(() => {
+    applyPalette(palette)
+    window.localStorage.setItem('focusnotes.palette', palette)
+  }, [palette])
 
   useEffect(() => window.focusDesktop?.onNavigateView((view) => setView(view as ViewId)), [])
   useEffect(() => { window.focusDesktop?.setOpacity(opacity / 100); window.localStorage.setItem('focusnotes.opacity', String(opacity)) }, [opacity])
@@ -458,6 +465,9 @@ export default function App() {
 
   const settings = settingsOpen && <SettingsDialog
     theme={themeMode}
+    palette={palette}
+    dark={dark}
+    onPalette={setPalette}
     alwaysOnTop={alwaysOnTop}
     opacity={opacity}
     windowEffect={windowEffect}

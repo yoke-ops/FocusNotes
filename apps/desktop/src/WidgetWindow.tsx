@@ -12,6 +12,7 @@ import {
   type WidgetKind,
 } from '@focusnotes/core'
 import type { WidgetData } from './desktop'
+import { applyPalette } from './palettes'
 
 const META: Record<WidgetKind, { title: string; icon: typeof ListTodo; view: string }> = {
   tasks: { title: '任务', icon: ListTodo, view: 'today' },
@@ -64,6 +65,7 @@ export function WidgetWindow() {
 
   useEffect(() => {
     const appearance = data?.appearance
+    applyPalette(appearance?.palette)
     const root = document.documentElement
     root.style.setProperty('--app-font', appearance?.fontFamily || '')
     root.style.setProperty('--w-scale', String((appearance?.fontSize || 100) / 100))

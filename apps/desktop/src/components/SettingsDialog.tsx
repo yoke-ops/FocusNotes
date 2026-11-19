@@ -41,9 +41,13 @@ import {
   type WorkspacePreferences,
 } from '@focusnotes/core'
 import type { ThemeMode, WindowEffect } from '../desktop'
+import { PALETTES, type PaletteId } from '../palettes'
 
 interface SettingsDialogProps {
   theme: ThemeMode
+  palette: PaletteId
+  dark: boolean
+  onPalette: (palette: PaletteId) => void
   alwaysOnTop: boolean
   opacity: number
   windowEffect: WindowEffect
@@ -142,7 +146,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
             <>
               <header className="settings-head"><h2>外观与窗口</h2><p>让 FocusNotes 更符合你的桌面。</p></header>
               <div className="settings-group">
-                <span className="settings-label">主题</span>
+                <span className="settings-label">深浅模式</span>
                 <div className="theme-grid">
                   {THEMES.map((theme) => {
                     const Icon = theme.icon
@@ -153,6 +157,25 @@ export function SettingsDialog(props: SettingsDialogProps) {
                         {props.theme === theme.id && <Check size={13} className="theme-check" />}
                       </button>
                     )
+                  })}
+                </div>
+              </div>
+              <div className="settings-group">
+                <span className="settings-label"><Palette size={12} /> 配色方案</span>
+                <div className="palette-grid" role="group" aria-label="配色方案">
+                  {PALETTES.map((palette) => {
+                    const colors = props.dark ? palette.dark : palette.light
+                    const selected = props.palette === palette.id
+                    return <button type="button" key={palette.id} className={`palette-card${selected ? ' active' : ''}`}
+                      aria-pressed={selected} onClick={() => props.onPalette(palette.id)}>
+                      <span className="palette-swatches" aria-hidden="true">
+                        {[colors[0], colors[1], colors[2], colors[5]].map((color) => (
+                          <i key={color} style={{ backgroundColor: color }} />
+                        ))}
+                      </span>
+                      <span>{palette.label}</span>
+                      {selected && <Check size={13} className="palette-check" aria-hidden="true" />}
+                    </button>
                   })}
                 </div>
               </div>

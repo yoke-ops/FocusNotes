@@ -14,6 +14,7 @@
 }
 
 :root[data-theme='dark'] {
+  color-scheme: dark;
   --w-text: #f5f5f7;
   --w-soft: #d1d1d6;
   --w-faint: #98989f;
@@ -27,6 +28,7 @@
 }
 
 :root[data-theme='light'] {
+  color-scheme: light;
   --w-text: #1d1d1f;
   --w-soft: #48484a;
   --w-faint: #77777d;
@@ -51,6 +53,18 @@
     --w-green: #30d158;
     --w-shadow: 0 8px 30px rgba(0, 0, 0, .55);
   }
+}
+
+:root[data-palette] {
+  --w-text: var(--palette-text);
+  --w-soft: color-mix(in srgb, var(--w-text) 74%, var(--w-faint));
+  --w-faint: var(--palette-muted);
+  --w-surface: color-mix(in srgb, var(--palette-page) 95%, transparent);
+  --w-card: var(--palette-surface);
+  --w-border: color-mix(in srgb, var(--w-faint) 26%, var(--palette-surface));
+  --w-accent: var(--palette-accent);
+  --w-on-accent: var(--palette-on-accent);
+  --w-danger: var(--palette-danger);
 }
 
 .widget-window {
@@ -127,12 +141,12 @@ button { cursor: pointer; }
 .widget-composer input { flex: 1; min-width: 0; height: 22px; padding: 0 6px; color: var(--w-text); font-size: 9px; border: 1px solid var(--w-border); border-radius: 5px; outline: 0; background: rgba(128, 128, 128, .07); }
 .widget-composer input:focus { border-color: var(--w-accent); }
 .widget-composer input::placeholder { color: var(--w-faint); }
-.widget-composer button { display: grid; place-items: center; flex: 0 0 22px; height: 22px; padding: 0; color: white; border: 0; border-radius: 5px; background: var(--w-accent); }
+.widget-composer button { display: grid; place-items: center; flex: 0 0 22px; height: 22px; padding: 0; color: var(--w-on-accent, white); border: 0; border-radius: 5px; background: var(--w-accent); }
 .widget-composer button:disabled { opacity: .4; cursor: not-allowed; }
 
 .widget-agenda { display: flex; flex-direction: column; gap: 2px; }
 .widget-agenda-row { display: flex; justify-content: space-between; padding: 3px 4px; color: var(--w-soft); font-size: 8.5px; border-radius: 4px; }
-.widget-agenda-row.today { color: var(--w-accent); background: rgba(0, 113, 227, .08); font-weight: 650; }
+.widget-agenda-row.today { color: var(--w-accent); background: color-mix(in srgb, var(--w-accent) 8%, transparent); font-weight: 650; }
 .widget-agenda-row strong { font-weight: 550; }
 
 .widget-quadrants { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
