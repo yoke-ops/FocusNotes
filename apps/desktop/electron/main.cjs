@@ -455,6 +455,8 @@ const FONT_FAMILIES = {
 /* ── 小部件磁吸：桌面边角 / 跟随前台应用窗口 ─────────────── */
 
 const widgetPrefs = { opacity: 100, darkMode: 'system', snap: 'top-right', fontSize: 100 }
+const initialWidgetSize = { width: 168, height: 216 }
+let widgetSize = initialWidgetSize
 let snapTimer = null
 
 function applyWidgetAppearance(prefs) {
@@ -467,7 +469,6 @@ function applyWidgetAppearance(prefs) {
   if (!widgetWindow || widgetWindow.isDestroyed()) return
   widgetWindow.setOpacity(widgetPrefs.opacity / 100)
   pushWidgetData()
-  applySnap()
 }
 
 /** Windows 下通过 PowerShell 读取前台窗口矩形；结果形如 "x,y,w,h"。 */
@@ -485,41 +486,41 @@ function foregroundRect() {
 
 async function applySnap() {
   if (!widgetWindow || widgetWindow.isDestroyed() || widgetPrefs.snap === 'none') return
-  const size = widgetWindow.getSize()
-  const display = screen.getDisplayNearestPoint(widgetWindow.getBounds())
+  const window = widgetWindow
+  const snap = widgetPrefs.snap
+  const display = screen.getDisplayNearestPoint(window.getBounds())
   const area = display.workArea
   const gap = 12
   let x = area.x + gap
   let y = area.y + gap
+  let foreground = null
 
-  if (widgetPrefs.snap === 'follow-app') {
-    const rect = await foregroundRect()
-    if (rect && rect.width > 100 && rect.height > 100 && rect.x > -30000) {
-      const targetX = rect.x + rect.width - size[0] - gap
-      const targetY = rect.y + 4
-      widgetWindow.setBounds({ x: Math.round(targetX), y: Math.round(targetY), width: size[0], height: size[1] })
-      return
-    }
-    x = area.x + area.width - size[0] - gap
-    y = area.y + gap
-  } else if (widgetPrefs.snap === 'top-right' || widgetPrefs.snap === 'top') {
-    x = area.x + area.width - size[0] - gap
-  } else if (widgetPrefs.snap === 'bottom-left' || widgetPrefs.snap === 'bottom-right') {
-    y = area.y + area.height - size[1] - gap
-    if (widgetPrefs.snap === 'bottom-right') x = area.x + area.width - size[0] - gap
+  if (snap === 'follow-app') {
+    foreground = await foregroundRect()
+    if (window !== widgetWindow || window.isDestroyed() || widgetPrefs.snap !== snap) return
   }
-  widgetWindow.setBounds({ x: Math.round(x), y: Math.round(y), width: size[0], height: size[1] })
+
+  // At fractional Windows display scales, feeding getSize() back into setBounds can grow the window.
+  const { width, height } = widgetSize
+  if (foreground && foreground.width > 100 && foreground.height > 100 && foreground.x > -30000) {
+    x = foreground.x + foreground.width - width - gap
+    y = foreground.y + 4
+  } else {
+    if (['top-right', 'top', 'bottom-right', 'follow-app'].includes(snap)) x = area.x + area.width - width - gap
+    if (snap === 'bottom-left' || snap === 'bottom-right') y = area.y + area.height - height - gap
+  }
+  window.setBounds({ x: Math.round(x), y: Math.round(y), width, height })
 }
 
 function startSnapTimer() {
-  if (snapTimer) clearInterval(snapTimer)
-  if (widgetPrefs.snap === 'follow-app') snapTimer = setInterval(() => void applySnap(), 1200)
+  clearInterval(snapTimer)
+  snapTimer = widgetPrefs.snap === 'follow-app' ? setInterval(() => void applySnap(), 1200) : null
 }
 
 function createWidgetWindow() {
+  widgetSize = initialWidgetSize
   widgetWindow = new BrowserWindow({
-    width: 168,
-    height: 216,
+    ...initialWidgetSize,
     minWidth: 150,
     minHeight: 160,
     frame: false,
@@ -543,6 +544,7 @@ function createWidgetWindow() {
     setTimeout(() => void applySnap(), 60)
     if (widgetShouldShow) widgetWindow.showInactive()
   })
+  widgetWindow.on('will-resize', (_event, { width, height }) => { widgetSize = { width, height } })
   widgetWindow.on('closed', () => { widgetWindow = null })
 }
 
@@ -733,11 +735,19 @@ function registerIpc() {
     if (!widgetWindow || widgetWindow.isDestroyed()) return
     const width = Math.min(520, Math.max(200, Number(size?.width) || 260))
     const height = Math.min(720, Math.max(180, Number(size?.height) || 216))
+    widgetSize = { width, height }
     widgetWindow.setSize(width, height)
     void applySnap()
   })
 
-  ipcMain.on('widget:appearance', (_event, prefs) => { applyWidgetAppearance(prefs); startSnapTimer() })
+  ipcMain.on('widget:appearance', (_event, prefs) => {
+    const previousSnap = widgetPrefs.snap
+    applyWidgetAppearance(prefs)
+    if (widgetPrefs.snap !== previousSnap) {
+      startSnapTimer()
+      void applySnap()
+    }
+  })
 
   ipcMain.handle('widget:toggle-habit', (_event, data) => {
     const habitId = data && data.habitId
