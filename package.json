@@ -2,13 +2,18 @@
   "name": "focusnotes",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=22 <25"
+  },
   "workspaces": [
     "packages/core",
     "apps/desktop",
     "apps/mobile"
   ],
   "scripts": {
-    "dev:desktop": "npm run dev -w @focusnotes/desktop",
+    "dev:desktop": "npm run build -w @focusnotes/core && npm run dev -w @focusnotes/desktop",
+    "dev:mobile": "npm run build -w @focusnotes/core && npm run start -w @focusnotes/mobile",
+    "build:android:qa": "npm run build -w @focusnotes/core && node scripts/android-qa.mjs",
     "build": "npm run build -w @focusnotes/core && npm run build -w @focusnotes/desktop",
     "test": "npm run test -w @focusnotes/core",
     "typecheck": "npm run build -w @focusnotes/core && npm run typecheck -w @focusnotes/desktop && npm run typecheck -w @focusnotes/mobile"
@@ -18,12 +23,5 @@
     "@types/node": "^22.10.2",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
-  },
-  "optionalDependencies": {
-    "@esbuild/win32-x64": "0.25.12",
-    "@rollup/rollup-win32-x64-msvc": "4.68.5"
-  },
-  "dependencies": {
-    "react-native-svg": "15.8.0"
   }
 }

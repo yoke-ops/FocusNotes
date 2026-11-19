@@ -7,7 +7,6 @@ react {
     reactNativeDir = file("../../../../node_modules/react-native")
     codegenDir = file("../../../../node_modules/@react-native/codegen")
     cliFile = file("../../../../node_modules/react-native/cli.js")
-    hermesCommand = file("../../../../node_modules/react-native/sdks/hermesc/win64-bin/hermesc.exe").absolutePath
     autolinkLibrariesWithApp()
 }
 
@@ -32,7 +31,17 @@ android {
         }
     }
     buildTypes {
-        debug { buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", "false" }
+        debug {
+            applicationIdSuffix ".debug"
+            versionNameSuffix "-debug"
+            buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", "false"
+        }
+        qa {
+            initWith debug
+            applicationIdSuffix ".qa"
+            versionNameSuffix "-qa"
+            matchingFallbacks = ["debug"]
+        }
         release {
             minifyEnabled false
             signingConfig signingConfigs.release

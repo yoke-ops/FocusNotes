@@ -4,6 +4,22 @@ const fs = require('node:fs')
 const { randomUUID } = require('node:crypto')
 const { execFile } = require('node:child_process')
 
+const development = !app.isPackaged
+app.setName(development ? 'FocusNotes Dev' : 'FocusNotes')
+app.setPath('userData', path.join(app.getPath('appData'), app.getName()))
+app.setAppUserModelId(development ? 'com.focusnotes.desktop.dev' : 'com.focusnotes.desktop')
+
+if (development) {
+  app.on('browser-window-created', (_event, window) => {
+    window.webContents.on('before-input-event', (event, input) => {
+      if (input.type === 'keyDown' && input.key === 'F12' && !input.isAutoRepeat) {
+        event.preventDefault()
+        window.webContents.toggleDevTools()
+      }
+    })
+  })
+}
+
 /* 只允许一个实例：第二个进程直接退出，并把已有窗口唤到前台。 */
 const gotLock = app.requestSingleInstanceLock()
 if (!gotLock) {
@@ -17,10 +33,6 @@ if (!gotLock) {
     }
   })
 }
-
-app.setName('FocusNotes')
-app.setPath('userData', path.join(app.getPath('appData'), 'FocusNotes'))
-app.setAppUserModelId('com.focusnotes.desktop')
 
 let mainWindow = null
 let widgetWindow = null
@@ -526,7 +538,7 @@ function createWidgetWindow() {
       sandbox: true,
     },
   })
-  if (process.env.VITE_DEV_SERVER_URL) widgetWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}widget.html`)
+  if (process.env.VITE_DEV_SERVER_URL) widgetWindow.loadURL(new URL('widget.html', process.env.VITE_DEV_SERVER_URL).href)
   else widgetWindow.loadFile(path.join(__dirname, '../dist/widget.html'))
 
   widgetWindow.once('ready-to-show', () => {

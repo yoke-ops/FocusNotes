@@ -24,10 +24,10 @@ Android 安装 APK 时，系统可能会要求允许从当前来源安装应用�
 
 ## 开发
 
-需要 Node.js、npm；Android 构建还需要 Android SDK 和兼容的 JDK。
+本地调试、Android 测试包和 GitHub Actions 的用法见[开发与测试指南](docs/development.md)。团队和 CI 使用 Node.js 22。Android 构建还需要 JDK 17 和 Android SDK。
 
 ```powershell
-npm install
+npm ci
 npm run typecheck
 npm test
 ```
@@ -36,6 +36,7 @@ npm test
 
 ```powershell
 npm run dev:desktop
+npm run build -w @focusnotes/core
 npm run dist -w @focusnotes/desktop
 ```
 
