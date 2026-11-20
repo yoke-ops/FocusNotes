@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import type { NavId } from '@focusnotes/core'
 import type { ViewId } from '../navigation'
+import type { CSSProperties } from 'react'
 
 interface IconRailProps {
   view: ViewId
@@ -43,13 +44,16 @@ const NAV_DEFS: Record<NavId, { id: NavId; label: string; icon: typeof CalendarD
 export function IconRail({ view, theme, profileName, onNavigate, onSearch, onSettings, onProfile, onToggleTheme, navOrder, navHidden }: IconRailProps) {
   const isActive = (id: ViewId) => view === id || (id === 'today' && (view === 'recent' || view === 'inbox' || view.startsWith('list:') || view.startsWith('tag:')))
   const items = navOrder.filter((id) => !navHidden.includes(id)).map((id) => NAV_DEFS[id]).filter(Boolean)
+  const selectedIndex = items.findIndex((item) => isActive(item.id as ViewId))
   const handle = (id: NavId) => id === 'search' ? onSearch() : onNavigate(id as ViewId)
   return (
     <nav className="icon-rail" aria-label="主导航">
       <button className="rail-avatar" onClick={onProfile} title={`记录档案：${profileName}`} aria-label="切换记录档案">
         <span>{(profileName || 'F').slice(0, 1).toUpperCase()}</span>
       </button>
-      <div className="rail-group">
+      <div className="rail-group rail-navigation">
+        {selectedIndex >= 0 && <span className="rail-selection" aria-hidden="true"
+          style={{ '--selected-index': selectedIndex } as CSSProperties} />}
         {items.map((item) => {
           const Icon = item.icon
           return (

@@ -1,6 +1,7 @@
 import { CalendarClock, Check, Flag, RotateCcw, Trash2 } from 'lucide-react'
 import type { TodoItem, TodoList } from '@focusnotes/core'
 import { formatDue } from '../date'
+import { useRef, useState } from 'react'
 
 interface TaskRowProps {
   todo: TodoItem
@@ -14,11 +15,40 @@ interface TaskRowProps {
 }
 
 export function TaskRow({ todo, lists, compact, onToggle, onEdit, onDelete, onRestore, onPurge }: TaskRowProps) {
+  const row = useRef<HTMLDivElement>(null)
+  const toggling = useRef(false)
+  const [completing, setCompleting] = useState(false)
+  async function toggle() {
+    if (toggling.current) return
+    if (todo.completed || window.matchMedia('(prefers-reduced-motion: reduce)').matches || !row.current) {
+      onToggle(todo.id)
+      return
+    }
+    toggling.current = true
+    setCompleting(true)
+    const height = row.current.getBoundingClientRect().height
+    let fallback: number | undefined
+    try {
+      const animation = row.current.animate([
+        { height: `${height}px`, opacity: 1 },
+        { height: `${height}px`, opacity: .6, offset: .4 },
+        { height: '0px', minHeight: '0px', paddingTop: '0px', paddingBottom: '0px', opacity: 0 },
+      ], { duration: 260, easing: 'cubic-bezier(.2,.7,.2,1)' })
+      await Promise.race([
+        animation.finished,
+        new Promise<void>((resolve) => { fallback = window.setTimeout(resolve, 350) }),
+      ])
+    } catch { /* A canceled animation still commits the user's action. */ }
+    finally { window.clearTimeout(fallback) }
+    onToggle(todo.id)
+    toggling.current = false
+    setCompleting(false)
+  }
   const list = lists.find((item) => item.id === todo.listId)
   const due = todo.dueAt ? formatDue(todo, new Date()) : ''
   const overdue = Boolean(todo.dueAt && !todo.completed && Date.parse(todo.dueAt) < Date.now())
   return (
-    <div className={`task-row${todo.completed ? ' done' : ''}${compact ? ' compact' : ''}`}>
+    <div ref={row} className={`task-row${todo.completed ? ' done' : ''}${compact ? ' compact' : ''}${completing ? ' completing' : ''}`}>
       {todo.deleted ? (
         <>
           <span className="task-deleted-mark">已删除</span>
@@ -42,12 +72,13 @@ export function TaskRow({ todo, lists, compact, onToggle, onEdit, onDelete, onRe
       ) : (
         <>
           <button
-            className={`task-check${todo.completed ? ' checked' : ''}`}
-            onClick={() => onToggle(todo.id)}
+            className={`task-check${todo.completed || completing ? ' checked' : ''}`}
+            onClick={() => void toggle()}
+            disabled={completing}
             aria-label={todo.completed ? '标记为未完成' : '标记为完成'}
             aria-pressed={todo.completed}
           >
-            {todo.completed && <Check size={12} strokeWidth={3} />}
+            {(todo.completed || completing) && <Check size={12} strokeWidth={3} />}
           </button>
           <button className="task-main" onClick={() => onEdit(todo)}>
             <span className="task-title">{todo.title}</span>

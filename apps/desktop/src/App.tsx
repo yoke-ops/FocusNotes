@@ -88,7 +88,7 @@ export default function App() {
   })
   const [widgetEnabled, setWidgetEnabled] = useState(() => loadBool('focusnotes.widget', true))
   const [themeMode, setThemeMode] = useState<ThemeMode>(loadThemeMode)
-  const [palette, setPalette] = useState(() => resolvePalette(window.localStorage.getItem('focusnotes.palette')).id)
+  const [palette, setPalette] = useState(() => resolvePalette(window.localStorage.getItem('focusnotes.palette') ?? 'mist').id)
   const [dark, setDark] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches)
   const [remindEnabled, setRemindEnabled] = useState(() => loadBool('focusnotes.remind', true))
   const [leadMinutes, setLeadMinutes] = useState(() => Number(window.localStorage.getItem('focusnotes.remindMinutes') ?? 15))
@@ -543,7 +543,7 @@ export default function App() {
         onClose={() => window.focusDesktop?.close()}
       />
       <div className="workspace-scroll">
-        {!ws.ready ? <div className="empty-state card"><ListTodo size={28} /><p>正在读取工作区…</p></div> : content}
+        {!ws.ready ? <div className="empty-state card"><ListTodo size={28} /><p>正在读取工作区…</p></div> : <div className="view-content" key={view}>{content}</div>}
       </div>
     </main>
 
