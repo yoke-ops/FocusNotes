@@ -23,6 +23,7 @@ import { AssistantView } from './components/AssistantView'
 import { WidgetView } from './components/WidgetView'
 import { NotesView } from './components/NotesView'
 import { applyPalette, resolvePalette } from './palettes'
+import { resolveMotion } from './motion'
 import { SearchDialog } from './components/SearchDialog'
 import { SettingsDialog } from './components/SettingsDialog'
 import { ProfileDialog, type ActionResult } from './components/ProfileDialog'
@@ -89,6 +90,12 @@ export default function App() {
   const [widgetEnabled, setWidgetEnabled] = useState(() => loadBool('focusnotes.widget', true))
   const [themeMode, setThemeMode] = useState<ThemeMode>(loadThemeMode)
   const [palette, setPalette] = useState(() => resolvePalette(window.localStorage.getItem('focusnotes.palette') ?? 'mist').id)
+  const [motion, setMotion] = useState(() => resolveMotion(window.localStorage.getItem('focusnotes.motion')))
+
+  useEffect(() => {
+    document.documentElement.dataset.motion = motion
+    window.localStorage.setItem('focusnotes.motion', motion)
+  }, [motion])
   const [dark, setDark] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches)
   const [remindEnabled, setRemindEnabled] = useState(() => loadBool('focusnotes.remind', true))
   const [leadMinutes, setLeadMinutes] = useState(() => Number(window.localStorage.getItem('focusnotes.remindMinutes') ?? 15))
@@ -124,8 +131,8 @@ export default function App() {
     const prefs = ws.extras.preferences
     const family = FONT_OPTIONS.find((item) => item.id === prefs.font)?.family || FONT_OPTIONS[0]!.family
     document.documentElement.style.setProperty('--app-font', family)
-    window.focusDesktop?.widget.appearance({ ...prefs.widget, palette })
-  }, [ws.extras.preferences.font, ws.extras.preferences.widget, palette])
+    window.focusDesktop?.widget.appearance({ ...prefs.widget, palette, motion })
+  }, [ws.extras.preferences.font, ws.extras.preferences.widget, palette, motion])
 
   useEffect(() => {
     applyPalette(palette)
@@ -468,6 +475,8 @@ export default function App() {
     palette={palette}
     dark={dark}
     onPalette={setPalette}
+    motion={motion}
+    onMotion={setMotion}
     alwaysOnTop={alwaysOnTop}
     opacity={opacity}
     windowEffect={windowEffect}

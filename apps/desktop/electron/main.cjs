@@ -456,7 +456,7 @@ const FONT_FAMILIES = {
 
 /* ── 小部件磁吸：桌面边角 / 跟随前台应用窗口 ─────────────── */
 
-const widgetPrefs = { opacity: 100, darkMode: 'system', snap: 'top-right', fontSize: 100, palette: 'classic' }
+const widgetPrefs = { opacity: 100, darkMode: 'system', snap: 'top-right', fontSize: 100, palette: 'classic', motion: 'full' }
 const initialWidgetSize = { width: 168, height: 216 }
 let widgetSize = initialWidgetSize
 let snapTimer = null
@@ -467,6 +467,7 @@ function applyWidgetAppearance(prefs) {
     if (['system', 'light', 'dark'].includes(prefs.darkMode)) widgetPrefs.darkMode = prefs.darkMode
     if (typeof prefs.snap === 'string') widgetPrefs.snap = prefs.snap
     if (typeof prefs.palette === 'string') widgetPrefs.palette = prefs.palette
+    if (['full', 'light', 'off'].includes(prefs.motion)) widgetPrefs.motion = prefs.motion
     if (Number.isFinite(Number(prefs.fontSize))) widgetPrefs.fontSize = Math.min(140, Math.max(80, Number(prefs.fontSize)))
   }
   if (!widgetWindow || widgetWindow.isDestroyed()) return

@@ -42,12 +42,15 @@ import {
 } from '@focusnotes/core'
 import type { ThemeMode, WindowEffect } from '../desktop'
 import { PALETTES, type PaletteId } from '../palettes'
+import { MOTION_OPTIONS, resolveMotion, type MotionMode } from '../motion'
 
 interface SettingsDialogProps {
   theme: ThemeMode
   palette: PaletteId
   dark: boolean
   onPalette: (palette: PaletteId) => void
+  motion: MotionMode
+  onMotion: (motion: MotionMode) => void
   alwaysOnTop: boolean
   opacity: number
   windowEffect: WindowEffect
@@ -178,6 +181,15 @@ export function SettingsDialog(props: SettingsDialogProps) {
                     </button>
                   })}
                 </div>
+              </div>
+              <div className="settings-group">
+                <label className="settings-row">
+                  <span><strong>动效强度</strong><small>同时跟随系统的减少动画设置</small></span>
+                  <select aria-label="动效强度" value={props.motion}
+                    onChange={(event) => props.onMotion(resolveMotion(event.target.value))}>
+                    {MOTION_OPTIONS.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
+                  </select>
+                </label>
               </div>
               <div className="settings-group">
                 <span className="settings-label"><Type size={12} /> 显示字体</span>

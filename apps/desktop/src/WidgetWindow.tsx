@@ -13,6 +13,7 @@ import {
 } from '@focusnotes/core'
 import type { WidgetData } from './desktop'
 import { applyPalette } from './palettes'
+import { resolveMotion } from './motion'
 
 const META: Record<WidgetKind, { title: string; icon: typeof ListTodo; view: string }> = {
   tasks: { title: '任务', icon: ListTodo, view: 'today' },
@@ -66,6 +67,7 @@ export function WidgetWindow() {
   useEffect(() => {
     const appearance = data?.appearance
     applyPalette(appearance?.palette)
+    document.documentElement.dataset.motion = resolveMotion(appearance?.motion)
     const root = document.documentElement
     root.style.setProperty('--app-font', appearance?.fontFamily || '')
     root.style.setProperty('--w-scale', String((appearance?.fontSize || 100) / 100))

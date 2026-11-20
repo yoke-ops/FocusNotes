@@ -170,3 +170,5 @@ button { cursor: pointer; }
 .widget-assistant-btn:hover { background: rgba(0, 113, 227, .07); }
 
 .widget-message { position: absolute; right: 5px; bottom: 6px; left: 5px; margin: 0; padding: 3px 5px; color: var(--w-danger); font-size: 8px; text-align: center; border-radius: 5px; background: var(--w-surface); }
+:root[data-motion='off'] * { animation: none !important; transition: none !important; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }

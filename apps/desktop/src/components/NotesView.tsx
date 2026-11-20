@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Copy } from 'lucide-react'
+import { Check, Copy } from 'lucide-react'
 
 const MAX_MEMO_LENGTH = 1_000_000
 
@@ -8,6 +8,8 @@ export function NotesView({ profileId }: { profileId: string }) {
   const [ready, setReady] = useState(false)
   const [status, setStatus] = useState('正在读取…')
   const [error, setError] = useState('')
+  const [copied, setCopied] = useState(false)
+  const copyTimer = useRef<number | undefined>(undefined)
   const latest = useRef('')
   const saved = useRef('')
   const pending = useRef(0)
@@ -62,6 +64,7 @@ export function NotesView({ profileId }: { profileId: string }) {
     })
     return () => {
       active = false
+      window.clearTimeout(copyTimer.current)
       void save(false)
     }
   }, [profileId, save])
@@ -69,18 +72,20 @@ export function NotesView({ profileId }: { profileId: string }) {
   return (
     <section className="notes-view" aria-label="备忘录编辑器">
       <div className="notes-toolbar">
-        <span className="notes-status" role="status">{status}</span>
+        <span key={status} className="notes-status" role="status">{status}</span>
         <button type="button" className="ghost-button" disabled={!body} onClick={async () => {
           try {
             const memo = window.focusDesktop?.memo
             if (!memo) throw new Error('无法复制备忘录。')
             await memo.copy(latest.current)
-            setStatus('已复制全文')
+            setCopied(true)
+            window.clearTimeout(copyTimer.current)
+            copyTimer.current = window.setTimeout(() => setCopied(false), 1600)
             setError('')
           } catch {
             setError('复制失败。可选中文字后按 Ctrl+C。')
           }
-        }}><Copy size={15} /> 复制全文</button>
+        }}>{copied ? <Check size={15} className="notes-copy-check" /> : <Copy size={15} />} {copied ? '已复制' : '复制全文'}</button>
       </div>
       <textarea
         aria-label="备忘录正文"
@@ -92,6 +97,7 @@ export function NotesView({ profileId }: { profileId: string }) {
         maxLength={MAX_MEMO_LENGTH}
         onChange={(event) => {
           const value = event.target.value
+          setCopied(false)
           latest.current = value
           setBody(value)
           setStatus('正在保存…')

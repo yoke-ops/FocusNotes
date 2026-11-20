@@ -2,6 +2,7 @@ import { CalendarClock, Check, Flag, RotateCcw, Trash2 } from 'lucide-react'
 import type { TodoItem, TodoList } from '@focusnotes/core'
 import { formatDue } from '../date'
 import { useRef, useState } from 'react'
+import { taskMotionDuration } from '../motion'
 
 interface TaskRowProps {
   todo: TodoItem
@@ -20,7 +21,8 @@ export function TaskRow({ todo, lists, compact, onToggle, onEdit, onDelete, onRe
   const [completing, setCompleting] = useState(false)
   async function toggle() {
     if (toggling.current) return
-    if (todo.completed || window.matchMedia('(prefers-reduced-motion: reduce)').matches || !row.current) {
+    const duration = taskMotionDuration()
+    if (todo.completed || duration === 0 || !row.current) {
       onToggle(todo.id)
       return
     }
@@ -33,10 +35,10 @@ export function TaskRow({ todo, lists, compact, onToggle, onEdit, onDelete, onRe
         { height: `${height}px`, opacity: 1 },
         { height: `${height}px`, opacity: .6, offset: .4 },
         { height: '0px', minHeight: '0px', paddingTop: '0px', paddingBottom: '0px', opacity: 0 },
-      ], { duration: 260, easing: 'cubic-bezier(.2,.7,.2,1)' })
+      ], { duration, easing: 'cubic-bezier(.2,.7,.2,1)' })
       await Promise.race([
         animation.finished,
-        new Promise<void>((resolve) => { fallback = window.setTimeout(resolve, 350) }),
+        new Promise<void>((resolve) => { fallback = window.setTimeout(resolve, duration + 90) }),
       ])
     } catch { /* A canceled animation still commits the user's action. */ }
     finally { window.clearTimeout(fallback) }
