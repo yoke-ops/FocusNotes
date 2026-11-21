@@ -30,6 +30,7 @@ button { cursor: pointer; }
 
 .widget-window {
   position: relative;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -43,6 +44,8 @@ button { cursor: pointer; }
 
 
 .widget-window:is([data-material='frosted'], [data-material='liquid']) {
+  --glass-tone: grayscale(1) brightness(.48);
+  --glass-image-opacity: calc(var(--w-glass-transparency, 28%) * .32);
   /* Keep white text legible over a bright wallpaper at maximum transparency. */
   background-color: color-mix(in srgb, var(--w-surface) calc(100% - var(--w-glass-transparency, 28%) * .34), transparent);
 }

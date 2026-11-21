@@ -31,6 +31,28 @@ class MemoryStorage implements KeyValueStorage {
   async setItem(key: string, value: string) { this.values.set(key, value) }
 }
 
+it('captures queued destinations and reports failed writes without breaking the queue', async () => {
+  let profile = 'first'
+  const writes: string[] = []
+  const store = new TodoStore({
+    getItem: async () => null,
+    setItem: async () => {},
+    prepareWrite: () => {
+      const target = profile
+      return async () => {
+        writes.push(target)
+        if (target === 'first') throw new Error('磁盘不可写')
+      }
+    },
+  })
+  const first = store.add({ title: '第一项' })
+  profile = 'second'
+  const second = store.add({ title: '第二项' })
+  await expect(first).rejects.toThrow('磁盘不可写')
+  await expect(second).resolves.toMatchObject({ title: '第二项' })
+  expect(writes).toEqual(['first', 'second'])
+})
+
 describe('待办排序与四象限', () => {
   it('按 DDL 从近到远，无 DDL 和已完成任务靠后', () => {
     const values = [

@@ -172,4 +172,11 @@ describe('normalizeExtras navigation backfill', () => {
     const out = normalizeExtras(legacy as never)
     expect(out.preferences.navHidden).toContain('search')
   })
+
+  it('removes the retired local notes entry from saved navigation settings', () => {
+    const out = normalizeExtras({ preferences: { navOrder: ['today', 'notes', 'memos'], navHidden: ['notes', 'search'] } })
+    expect(out.preferences.navOrder).not.toContain('notes')
+    expect(out.preferences.navOrder).toContain('memos')
+    expect(out.preferences.navHidden).toEqual(['search'])
+  })
 })

@@ -14,6 +14,7 @@ import {
   type WidgetKind,
 } from '@focusnotes/core'
 import type { ViewId } from '../navigation'
+import { QUADRANT_GRID_ORDER, QUADRANT_ICONS } from '../taskIcons'
 
 interface WidgetViewProps {
   widgets: WidgetKind[]
@@ -113,12 +114,14 @@ export function WidgetView({ widgets, tasks, lists, habits, habitLogs, completio
 
             {kind === 'quadrant' && (
               <div className="widget-quadrants">
-                {(Object.keys(QUADRANTS) as (keyof typeof QUADRANTS)[]).map((quadrant) => (
-                  <div key={quadrant} style={{ borderColor: `${QUADRANTS[quadrant].color}55` }}>
+                {QUADRANT_GRID_ORDER.map((quadrant) => {
+                  const Icon = QUADRANT_ICONS[quadrant]
+                  return <div key={quadrant}>
+                    <Icon size={15} strokeWidth={1.8} aria-hidden="true" />
                     <strong>{open.filter((todo) => getQuadrant(todo) === quadrant).length}</strong>
                     <small>{QUADRANTS[quadrant].label}</small>
                   </div>
-                ))}
+                })}
               </div>
             )}
 

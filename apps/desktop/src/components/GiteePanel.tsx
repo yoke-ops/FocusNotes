@@ -11,7 +11,10 @@ export function GiteePanel({ onChanged }: { onChanged(): void }) {
 
   useEffect(() => {
     void window.focusDesktop?.gitee.get().then((config) => {
-      if (config) setDraft({ owner: config.owner, repo: config.repo, branch: config.branch, path: config.path, token: config.token })
+      if (config) {
+        setDraft({ owner: config.owner, repo: config.repo, branch: config.branch, path: config.path, token: config.token })
+        if (!config.profileId) setStatus('请在原来使用该云端文件的档案中重新保存连接。')
+      }
     }).catch(() => undefined)
   }, [])
 
@@ -31,7 +34,7 @@ export function GiteePanel({ onChanged }: { onChanged(): void }) {
 
   return <div className="settings-group">
     <span className="settings-label"><CloudUpload size={12} /> Gitee 云同步</span>
-    <p className="settings-hint">修改后自动提交到你的私有仓库，启动时自动拉取合并。令牌仅保存在本机并加密。</p>
+    <p className="settings-hint">同步连接绑定当前档案。为不同档案指定不同的仓库文件路径。令牌仅保存在本机并加密。</p>
     {([['owner', '用户名'], ['repo', '仓库'], ['branch', '分支'], ['path', '文件路径'], ['token', '私人令牌']] as const).map(([key, label]) =>
       <div className="field" key={key}>
         <span>{label}</span>

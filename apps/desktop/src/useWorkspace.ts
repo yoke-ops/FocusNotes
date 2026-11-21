@@ -36,6 +36,8 @@ export interface WorkspaceApi {
   profile: WorkspaceProfile
   dir: string
   profiles: ProfileListLike | null
+  saveError: string
+  retrySave(): void
   addTask(draft: TodoDraft): Promise<TodoItem>
   updateTask(id: string, draft: Partial<TodoDraft>): Promise<void>
   toggleTask(id: string): Promise<void>
@@ -44,13 +46,14 @@ export interface WorkspaceApi {
   purgeTask(id: string): Promise<void>
   purgeTrash(): Promise<void>
   updateExtras(patch: (current: WorkspaceExtras) => WorkspaceExtras): void
-  replaceAll(todos: TodoItem[], extras: WorkspaceExtras): Promise<void>
+  replaceAll(todos: TodoItem[], extras: WorkspaceExtras, profileId: string): Promise<void>
   toggleHabit(habitId: string, day: string): void
   addHabit(habit: Habit): void
   updateHabit(habit: Habit): void
   removeHabit(habitId: string): void
   addFocusSession(session: FocusSession): void
   refreshProfile(): Promise<void>
+  refreshProfiles(): Promise<void>
   notify(title: string, body: string): void
 }
 
@@ -71,28 +74,51 @@ export function useWorkspace(): WorkspaceApi {
   const [profile, setProfile] = useState<WorkspaceProfile>({ id: 'local', name: '本机记录' })
   const [dir, setDir] = useState('')
   const [profiles, setProfiles] = useState<ProfileListLike | null>(null)
+  const [saveError, setSaveError] = useState('')
 
   const extrasRef = useRef(extras)
+  const profileIdRef = useRef(profile.id)
+  const changeVersion = useRef(0)
+  const failedTasks = useRef(new Map<string, unknown[]>())
+  const pendingTasks = useRef(new Map<string, unknown[]>())
+  const pendingExtras = useRef(new Map<string, WorkspaceExtras>())
+  const retrying = useRef(false)
   const storeRef = useRef<TodoStore | null>(null)
+
+  const writeWorkspace = useCallback(async (data: { profileId: string; todos?: unknown[]; extras?: WorkspaceExtras; requireActive?: boolean }) => {
+    const result = await desktop?.workspace.write(data)
+    if (!result?.ok) throw new Error(result?.error || '保存失败，请重试。')
+  }, [desktop])
 
   if (!storeRef.current) {
     const storage: KeyValueStorage = {
       async getItem() {
-        return null
+        return desktop ? null : localStorage.getItem(TODOS_KEY)
       },
       async setItem(_key, raw) {
-        let list: unknown = []
-        try {
-          list = JSON.parse(raw)
-        } catch {
-          return
-        }
-        if (desktop?.workspace) {
-          await desktop.workspace.write({ todos: list as unknown[], extras: extrasRef.current })
-        } else {
-          localStorage.setItem(TODOS_KEY, raw)
-        }
+        localStorage.setItem(TODOS_KEY, raw)
       },
+      ...(desktop ? {
+        prepareWrite(_key: string, raw: string) {
+          const profileId = profileIdRef.current
+          const todos = JSON.parse(raw) as unknown[]
+          changeVersion.current++
+          pendingTasks.current.set(profileId, todos)
+          return async () => {
+            try {
+              await writeWorkspace({ profileId, todos })
+              failedTasks.current.delete(profileId)
+              if (!failedTasks.current.size && !pendingExtras.current.size) setSaveError('')
+            } catch (reason) {
+              failedTasks.current.set(profileId, todos)
+              setSaveError(reason instanceof Error ? `待办未保存：${reason.message}` : '待办未保存。')
+              throw reason
+            } finally {
+              if (pendingTasks.current.get(profileId) === todos) pendingTasks.current.delete(profileId)
+            }
+          }
+        },
+      } : {}),
     }
     storeRef.current = new TodoStore(storage)
   }
@@ -109,6 +135,7 @@ export function useWorkspace(): WorkspaceApi {
         if (desktop?.workspace) {
           const doc = await desktop.workspace.read()
           if (!alive) return
+          profileIdRef.current = doc.profile.id
           store.hydrate(doc.todos)
           const next = normalizeExtras(doc.extras)
           extrasRef.current = next
@@ -118,7 +145,10 @@ export function useWorkspace(): WorkspaceApi {
           if (!Array.isArray(doc.todos) || doc.todos.length === 0) {
             const legacy = localStorage.getItem(TODOS_KEY)
             const migrated = legacy ? normalizeTodos(JSON.parse(legacy)) : []
-            if (migrated.length) await store.replace(migrated)
+            if (migrated.length) {
+              await store.replace(migrated)
+              localStorage.removeItem(TODOS_KEY)
+            }
           }
           try {
             setProfiles((await desktop.profile.list()) as ProfileListLike)
@@ -130,11 +160,7 @@ export function useWorkspace(): WorkspaceApi {
           setExtras(next)
         }
       } catch {
-        if (!alive) return
-        await store.load().catch(() => undefined)
-        const next = localExtras()
-        extrasRef.current = next
-        setExtras(next)
+        if (alive) setSaveError('无法读取或迁移工作区，请检查档案存储后重试。')
       } finally {
         if (alive) setReady(true)
       }
@@ -147,32 +173,40 @@ export function useWorkspace(): WorkspaceApi {
     }
   }, [desktop, store])
 
-  const persistExtras = useCallback(async (next: WorkspaceExtras) => {
-    if (desktop?.workspace) {
-      await desktop.workspace.write({ todos: store.all, extras: next })
-    } else {
-      localStorage.setItem(EXTRAS_KEY, JSON.stringify(next))
+  const persistExtras = useCallback(async (profileId: string, next: WorkspaceExtras) => {
+    pendingExtras.current.set(profileId, next)
+    try {
+      if (desktop) await writeWorkspace({ profileId, extras: next })
+      else localStorage.setItem(EXTRAS_KEY, JSON.stringify(next))
+      if (pendingExtras.current.get(profileId) === next) {
+        pendingExtras.current.delete(profileId)
+        if (!pendingExtras.current.size && !failedTasks.current.size) setSaveError('')
+      }
+    } catch (reason) {
+      if (pendingExtras.current.get(profileId) === next) {
+        setSaveError(reason instanceof Error ? `未保存设置：${reason.message}` : '未保存设置。')
+      }
     }
-  }, [desktop, store])
+  }, [desktop, writeWorkspace])
 
   /** 同步合并后整体替换内存与磁盘数据。 */
-  const replaceAll = useCallback(async (nextTodos: TodoItem[], nextExtras: WorkspaceExtras) => {
+  const replaceAll = useCallback(async (nextTodos: TodoItem[], nextExtras: WorkspaceExtras, profileId: string) => {
+    if (profileIdRef.current !== profileId) return
+    const version = changeVersion.current
+    if (desktop) await writeWorkspace({ profileId, todos: nextTodos, extras: nextExtras, requireActive: true })
+    else localStorage.setItem(TODOS_KEY, JSON.stringify(nextTodos))
+    if (profileIdRef.current !== profileId || changeVersion.current !== version) return
     setExtras(nextExtras)
     extrasRef.current = nextExtras
     store.hydrate(nextTodos)
-    try {
-      if (desktop?.workspace) await desktop.workspace.write({ todos: nextTodos, extras: nextExtras })
-      else localStorage.setItem(TODOS_KEY, JSON.stringify(nextTodos))
-    } catch { /* 持久化失败不阻塞界面 */ }
-  }, [desktop, store])
+  }, [desktop, store, writeWorkspace])
 
   const updateExtras = useCallback((patch: (current: WorkspaceExtras) => WorkspaceExtras) => {
-    setExtras((current) => {
-      const next = normalizeExtras(patch(current))
-      extrasRef.current = next
-      void persistExtras(next).catch(() => undefined)
-      return next
-    })
+    const next = normalizeExtras(patch(extrasRef.current))
+    changeVersion.current++
+    extrasRef.current = next
+    setExtras(next)
+    void persistExtras(profileIdRef.current, next)
   }, [persistExtras])
 
   const addTask = useCallback((draft: TodoDraft) => store.add(draft), [store])
@@ -213,19 +247,45 @@ export function useWorkspace(): WorkspaceApi {
     updateExtras((current) => ({ ...current, focusSessions: [...current.focusSessions, session].slice(-3000) }))
   }, [updateExtras])
 
+  const refreshProfiles = useCallback(async () => {
+    if (!desktop) return
+    try { setProfiles((await desktop.profile.list()) as ProfileListLike) } catch { /* 档案列表读取失败。 */ }
+  }, [desktop])
+
   const refreshProfile = useCallback(async () => {
     if (!desktop?.workspace) return
     const doc = await desktop.workspace.read()
-    store.hydrate(doc.todos)
-    const next = normalizeExtras(doc.extras)
+    changeVersion.current++
+    profileIdRef.current = doc.profile.id
+    store.hydrate(pendingTasks.current.get(doc.profile.id) ?? failedTasks.current.get(doc.profile.id) ?? doc.todos)
+    const next = pendingExtras.current.get(doc.profile.id) ?? normalizeExtras(doc.extras)
     extrasRef.current = next
     setExtras(next)
     setProfile(doc.profile)
     setDir(doc.dir)
+    await refreshProfiles()
+  }, [desktop, store, refreshProfiles])
+
+  const retrySave = useCallback(async () => {
+    if (retrying.current) return
+    retrying.current = true
     try {
-      setProfiles((await desktop.profile.list()) as ProfileListLike)
-    } catch { /* 忽略 */ }
-  }, [desktop, store])
+      for (const [profileId, todos] of failedTasks.current) {
+        if (pendingTasks.current.has(profileId)) continue
+        await writeWorkspace({ profileId, todos })
+        if (failedTasks.current.get(profileId) === todos) failedTasks.current.delete(profileId)
+      }
+      for (const [id, next] of pendingExtras.current) await persistExtras(id, next)
+      if (!failedTasks.current.size && !pendingExtras.current.size) {
+        await refreshProfile()
+        setSaveError('')
+      }
+    } catch (reason) {
+      setSaveError(reason instanceof Error ? `重试失败：${reason.message}` : '保存重试失败。')
+    } finally {
+      retrying.current = false
+    }
+  }, [persistExtras, refreshProfile, writeWorkspace])
 
   const notify = useCallback((title: string, body: string) => {
     if (desktop) desktop.notify({ title, body })
@@ -243,6 +303,8 @@ export function useWorkspace(): WorkspaceApi {
     profile,
     dir,
     profiles,
+    saveError,
+    retrySave,
     addTask,
     updateTask,
     toggleTask,
@@ -258,6 +320,7 @@ export function useWorkspace(): WorkspaceApi {
     removeHabit,
     addFocusSession,
     refreshProfile,
+    refreshProfiles,
     notify,
   }
 }

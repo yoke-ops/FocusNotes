@@ -11,7 +11,6 @@ import {
   Moon,
   Timer,
   Gauge,
-  Notebook,
 } from 'lucide-react'
 import type { NavId } from '@focusnotes/core'
 import type { ViewId } from '../navigation'
@@ -40,7 +39,6 @@ const NAV_DEFS: Record<NavId, { id: NavId; label: string; icon: typeof CalendarD
   widgets: { id: 'widgets', label: '概览', icon: Gauge },
   search: { id: 'search', label: '搜索', icon: Search },
   assistant: { id: 'assistant', label: 'AI 助手', icon: Sparkles },
-  notes: { id: 'notes', label: '本地便笺', icon: Notebook },
 }
 
 export function IconRail({ view, theme, profileName, onNavigate, onSearch, onSettings, onProfile, onToggleTheme, navOrder, navHidden }: IconRailProps) {

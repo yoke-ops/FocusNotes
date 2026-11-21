@@ -1,6 +1,7 @@
-import { useState, type CSSProperties } from 'react'
+import { useState } from 'react'
 import { Check, GripVertical, LayoutGrid } from 'lucide-react'
 import { dateKey, getQuadrant, QUADRANTS, type Quadrant, type TodoDraft, type TodoItem } from '@focusnotes/core'
+import { QUADRANT_GRID_ORDER, QUADRANT_ICONS } from '../taskIcons'
 
 interface QuadrantViewProps {
   tasks: TodoItem[]
@@ -8,8 +9,6 @@ interface QuadrantViewProps {
   onEdit: (todo: TodoItem) => void
   onUpdate: (id: string, draft: Partial<TodoDraft>) => void
 }
-
-const ORDER: Quadrant[] = ['important-urgent', 'important-not-urgent', 'not-important-urgent', 'not-important-not-urgent']
 
 export function QuadrantView({ tasks, onToggle, onEdit, onUpdate }: QuadrantViewProps) {
   const [dragging, setDragging] = useState<string | null>(null)
@@ -29,21 +28,22 @@ export function QuadrantView({ tasks, onToggle, onEdit, onUpdate }: QuadrantView
 
   return (
     <div className="quadrant-view">
+      <div className="quadrant-directions"><span>重要程度 →</span><span>紧急程度 ↑</span></div>
       <div className="quadrant-grid">
-        {ORDER.map((quadrant) => {
+        {QUADRANT_GRID_ORDER.map((quadrant) => {
           const meta = QUADRANTS[quadrant]
+          const Icon = QUADRANT_ICONS[quadrant]
           const items = open.filter((todo) => getQuadrant(todo) === quadrant)
           return (
             <section
               key={quadrant}
               className={`quadrant-panel${over === quadrant ? ' drag-over' : ''}`}
-              style={{ '--quad-color': meta.color } as CSSProperties}
               onDragOver={(event) => { event.preventDefault(); setOver(quadrant) }}
               onDragLeave={() => setOver((value) => (value === quadrant ? null : value))}
               onDrop={(event) => { event.preventDefault(); drop(quadrant) }}
             >
               <header>
-                <span className="quadrant-dot" />
+                <Icon size={16} strokeWidth={1.8} aria-hidden="true" />
                 <h3>{meta.label}</h3>
                 <span className="quadrant-count">{items.length}</span>
               </header>

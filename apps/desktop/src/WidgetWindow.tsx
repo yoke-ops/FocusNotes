@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Archive, Bot, Calendar, CalendarDays, Check, Flame, LayoutGrid, ListTodo, Plus, Rocket, Timer, X } from 'lucide-react'
+import { Bot, CalendarDays, Check, Flame, LayoutGrid, ListTodo, Plus, Timer, X } from 'lucide-react'
 import {
   QUADRANTS,
   addDays,
   dateKey,
-  getQuadrant,
   habitStreak,
   isHabitScheduled,
   startOfDay,
@@ -13,6 +12,8 @@ import {
 } from '@focusnotes/core'
 import type { WidgetData } from './desktop'
 import { resolveMotion } from './motion'
+import { GlassBackdrop } from './components/GlassBackdrop'
+import { QUADRANT_GRID_ORDER, QUADRANT_ICONS } from './taskIcons'
 
 const META: Record<WidgetKind, { title: string; icon: typeof ListTodo; view: string }> = {
   tasks: { title: '任务', icon: ListTodo, view: 'today' },
@@ -22,13 +23,6 @@ const META: Record<WidgetKind, { title: string; icon: typeof ListTodo; view: str
   countdown: { title: '倒数纪念日', icon: Timer, view: 'today' },
   assistant: { title: 'AI 助手', icon: Bot, view: 'assistant' },
 }
-
-const QUADRANT_ICONS = [
-  ['important-urgent', Rocket],
-  ['not-important-urgent', Timer],
-  ['important-not-urgent', Calendar],
-  ['not-important-not-urgent', Archive],
-] as const
 
 function shortDue(dueAt: string | null, overdue: boolean, today: string): string {
   if (!dueAt) return ''
@@ -117,6 +111,7 @@ export function WidgetWindow() {
   const todayDate = useMemo(() => (data ? startOfDay(new Date(`${data.today}T00:00:00`)) : startOfDay(new Date())), [data])
 
   return <div className="widget-window" data-material={material}>
+    {material !== 'classic' && <GlassBackdrop blur={data?.appearance.glassBlur ?? 14} />}
     <header className="widget-grip">
       <button className="widget-close" onClick={() => window.focusDesktop?.widget.close()} aria-label="关闭小部件"><X size={10} /></button>
     </header>
@@ -147,10 +142,10 @@ export function WidgetWindow() {
             {Array.from({ length: 4 }, (_, index) => {
               const day = addDays(todayDate, index)
               const key = dateKey(day)
-              const items = (data?.items ?? []).filter((item) => item.dueAt && dateKey(item.dueAt) === key)
+              const count = data?.agendaCounts?.[key] ?? 0
               return <div key={key} className={`widget-agenda-row${index === 0 ? ' today' : ''}`}>
                 <span>{index === 0 ? '今天' : `${day.getMonth() + 1}/${day.getDate()}`}</span>
-                <strong>{items.length ? `${items.length} 项` : '空闲'}</strong>
+                <strong>{count ? `${count} 项` : '空闲'}</strong>
               </div>
             })}
           </div>
@@ -158,8 +153,9 @@ export function WidgetWindow() {
 
         if (kind === 'quadrant') return <Section key={kind} kind={kind} onOpen={openView}>
           <div className="widget-quadrants">
-            {QUADRANT_ICONS.map(([quadrant, Icon]) => {
-              const count = (data?.items ?? []).filter((item) => getQuadrant(item) === quadrant).length
+            {QUADRANT_GRID_ORDER.map((quadrant) => {
+              const Icon = QUADRANT_ICONS[quadrant]
+              const count = data?.quadrantCounts?.[quadrant] ?? 0
               const label = QUADRANTS[quadrant].label
               return <div key={quadrant} className="widget-quadrant" role="img" aria-label={`${label}，${count} 项`} title={label}>
                 <Icon size={16} aria-hidden="true" focusable="false" />

@@ -38,6 +38,8 @@ export interface ParsedTodoDraft extends TodoDraft {
 export interface KeyValueStorage {
   getItem(key: string): Promise<string | null>
   setItem(key: string, value: string): Promise<void>
+  /** Capture destination and other write context before a snapshot enters the queue. */
+  prepareWrite?(key: string, value: string): () => Promise<void>
 }
 
 export interface UserSession {
@@ -97,7 +99,7 @@ export type WidgetSnap = 'none' | 'top-left' | 'top-right' | 'bottom-left' | 'bo
 export type FontId = 'system' | 'source-han-sans' | 'source-han-serif' | 'pingfang' | 'microsoft-yahei' | 'georgia'
 
 /** 左侧功能栏可排序/隐藏的视图。 */
-export type NavId = 'today' | 'memos' | 'pomodoro' | 'habits' | 'calendar' | 'quadrant' | 'widgets' | 'search' | 'assistant' | 'notes'
+export type NavId = 'today' | 'memos' | 'pomodoro' | 'habits' | 'calendar' | 'quadrant' | 'widgets' | 'search' | 'assistant'
 
 export interface WidgetPreferences {
   material: 'frosted' | 'classic' | 'liquid'
@@ -105,6 +107,7 @@ export interface WidgetPreferences {
   opacity: number
   /** Transparency of the tint applied over the native blur. */
   glassTransparency: number
+  glassBlur: number
   darkMode: 'system' | 'light' | 'dark'
   alwaysOnTop: boolean
   snap: WidgetSnap

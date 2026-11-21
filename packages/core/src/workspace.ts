@@ -44,8 +44,8 @@ export const DEFAULT_PREFERENCES: WorkspacePreferences = {
   dailyGoal: 8,
   sound: true,
   font: 'system',
-  widget: { material: 'frosted', opacity: 100, glassTransparency: 28, darkMode: 'system', alwaysOnTop: true, snap: 'top-right', fontSize: 100 },
-  navOrder: ['today', 'memos', 'pomodoro', 'habits', 'calendar', 'quadrant', 'widgets', 'search', 'assistant', 'notes'],
+  widget: { material: 'frosted', opacity: 100, glassTransparency: 28, glassBlur: 14, darkMode: 'system', alwaysOnTop: true, snap: 'top-right', fontSize: 100 },
+  navOrder: ['today', 'memos', 'pomodoro', 'habits', 'calendar', 'quadrant', 'widgets', 'search', 'assistant'],
   navHidden: [],
 }
 
@@ -59,7 +59,6 @@ export const NAV_ITEMS: Array<{ id: NavId; label: string }> = [
   { id: 'widgets', label: '概览' },
   { id: 'search', label: '搜索' },
   { id: 'assistant', label: 'AI 助手' },
-  { id: 'notes', label: '本地便笺' },
 ]
 
 export const FONT_OPTIONS: Array<{ id: FontId; label: string; family: string; category: '无衬线' | '衬线' | '系统' }> = [
@@ -452,6 +451,7 @@ export function normalizeExtras(value: unknown, now = new Date()): WorkspaceExtr
       material: widgetPref.material === 'classic' || widgetPref.material === 'liquid' ? widgetPref.material : DEFAULT_PREFERENCES.widget.material,
       opacity: widgetOpacity,
       glassTransparency: numberIn(widgetPref.glassTransparency ?? previousGlassTransparency, previousGlassTransparency, 0, 100),
+      glassBlur: numberIn(widgetPref.glassBlur ?? DEFAULT_PREFERENCES.widget.glassBlur, DEFAULT_PREFERENCES.widget.glassBlur, 0, 32),
       darkMode: widgetPref.darkMode === 'light' || widgetPref.darkMode === 'dark' ? widgetPref.darkMode : 'system',
       alwaysOnTop: widgetPref.alwaysOnTop !== false,
       snap: typeof snap === 'string' && validSnaps.includes(snap as WidgetSnap) ? snap as WidgetSnap : 'top-right',

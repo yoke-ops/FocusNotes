@@ -172,6 +172,21 @@ describe('createGiteeSync', () => {
     expect(calls[1]!.body.sha).toBe('sha-1')
   })
 
+  it('merges remote-only records before updating the same revision', async () => {
+    const remote = buildSyncPayload([todo({ id: 'remote' })], createDefaultExtras())
+    const local = buildSyncPayload([todo({ id: 'local' })], createDefaultExtras())
+    const fetcher = (async (_url: string, init?: RequestInit) => {
+      if (!init?.method) return new Response(JSON.stringify({ sha: 'latest', content: enc(JSON.stringify(remote)) }))
+      const body = JSON.parse(String(init.body))
+      expect(init.method).toBe('PUT')
+      expect(body.sha).toBe('latest')
+      expect(JSON.parse(dec(body.content)).todos.map((item: TodoItem) => item.id).sort()).toEqual(['local', 'remote'])
+      return new Response(JSON.stringify({ content: { sha: 'next' } }))
+    }) as typeof fetch
+    const sync = createGiteeSync({ owner: 'o', repo: 'r', branch: 'master', token: 't' }, fetcher)
+    await expect(sync.push(local, { mergeRemote: true })).resolves.toMatchObject({ sha: 'next' })
+  })
+
   it('round-trips Chinese and emoji through base64 without TextEncoder', async () => {
     const payload = buildSyncPayload(
       [todo({ title: '写周报 📝' })],

@@ -1,0 +1,13 @@
+.glass-backdrop {
+  position: absolute;
+  z-index: -1;
+  inset: -64px;
+  pointer-events: none;
+  background-image:
+    radial-gradient(ellipse at 20% 12%, #ababab, transparent 48%),
+    radial-gradient(ellipse at 75% 80%, #717171, #292929 75%);
+  background-position: center;
+  background-size: cover;
+  filter: blur(var(--glass-blur, 14px)) var(--glass-tone, grayscale(0));
+  opacity: var(--glass-image-opacity, .24);
+}

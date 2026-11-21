@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowRight, Check, Folder, Search, X } from 'lucide-react'
+import { ArrowRight, Check, Search, X } from 'lucide-react'
 import { matchesTodo, type TodoItem, type TodoList } from '@focusnotes/core'
 import { listViewId, type ViewId } from '../navigation'
+import { listIcon } from '../taskIcons'
 
 interface SearchDialogProps {
   tasks: TodoItem[]
@@ -80,9 +81,10 @@ export function SearchDialog({ tasks, lists, onClose, onOpenTask, onNavigate }: 
           ) : (
             listResults.map((list) => {
               const count = tasks.filter((todo) => todo.listId === list.id && !todo.deleted && !todo.completed).length
+              const Icon = listIcon(list.id)
               return (
                 <button key={list.id} className="search-result" onClick={() => { onNavigate(listViewId(list.id)); onClose() }}>
-                  <span className="list-dot" style={{ background: list.color }}><Folder size={12} /></span>
+                  <span className="list-dot"><Icon size={15} strokeWidth={1.8} aria-hidden="true" /></span>
                   <span className="search-result-text"><strong>{list.name}</strong><small>{count} 件待办</small></span>
                   <ArrowRight size={14} />
                 </button>

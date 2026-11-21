@@ -1,5 +1,5 @@
 import type { SyncPayload } from './sync-payload'
-import { parseSyncPayload } from './sync-payload'
+import { mergeSyncPayload, parseSyncPayload } from './sync-payload'
 
 export interface GiteeConfig {
   owner: string
@@ -12,7 +12,7 @@ export interface GiteeConfig {
 
 export interface GiteeSyncApi {
   pull(): Promise<SyncPayload | null>
-  push(payload: SyncPayload): Promise<{ created: boolean; sha: string }>
+  push(payload: SyncPayload, options?: { mergeRemote?: boolean }): Promise<{ created: boolean; sha: string }>
   test(): Promise<boolean>
 }
 
@@ -137,8 +137,13 @@ export function createGiteeSync(config: GiteeConfig, fetcher: typeof fetch, path
         throw new GiteeSyncError('远端数据格式无法解析')
       }
     },
-    async push(payload) {
+    async push(payload, options) {
       const file = await readFile()
+      if (file?.content.trim() && options?.mergeRemote) {
+        const remote = parseSyncPayload(JSON.parse(file.content))
+        if (!remote) throw new GiteeSyncError('远端数据格式无法解析，未覆盖原文件。')
+        payload = mergeSyncPayload(payload, remote)
+      }
       const body: Record<string, unknown> = {
         content: base64Encode(JSON.stringify(payload)),
         message: `sync: ${payload.syncedAt}`,

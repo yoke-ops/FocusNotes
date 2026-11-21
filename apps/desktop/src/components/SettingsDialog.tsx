@@ -55,6 +55,7 @@ interface SettingsDialogProps {
   alwaysOnTop: boolean
   opacity: number
   windowEffect: WindowEffect
+  windowBlur: number
   widgetEnabled: boolean
   remindersEnabled: boolean
   leadMinutes: number
@@ -66,6 +67,7 @@ interface SettingsDialogProps {
   onAlwaysOnTop: (value: boolean) => void
   onOpacity: (value: number) => void
   onWindowEffect: (effect: WindowEffect) => void
+  onWindowBlur: (blur: number) => void
   onWidgetEnabled: (enabled: boolean) => void
   onReminders: (enabled: boolean, leadMinutes: number) => void
   onPreferences: (patch: Partial<WorkspacePreferences>) => void
@@ -107,6 +109,17 @@ function EffectPicker({ value, onChange }: { value: WindowEffect; onChange: (eff
       ))}
     </div>
   )
+}
+
+function BlurControl({ value, onChange }: { value: number; onChange: (blur: number) => void }) {
+  return <label className="settings-row">
+    <span><strong>模糊强度</strong><small>调整壁纸图层的模糊程度</small></span>
+    <div className="range-wrap">
+      <input type="range" min={0} max={32} step={1} value={value} aria-label="模糊强度"
+        onChange={(event) => onChange(Number(event.target.value))} />
+      <output>{value} px</output>
+    </div>
+  </label>
 }
 
 const SNAP_OPTIONS: Array<{ id: WidgetSnap; label: string }> = [
@@ -259,6 +272,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
               <div className="settings-group">
                 <span className="settings-label">窗口质感</span>
                 <EffectPicker value={props.windowEffect} onChange={props.onWindowEffect} />
+                {props.windowEffect !== 'solid' && <BlurControl value={props.windowBlur} onChange={props.onWindowBlur} />}
               </div>
               <div className="settings-group">
                 <label className="settings-row">
@@ -350,6 +364,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
                 <span className="settings-label"><Palette size={12} /> 小组件外观</span>
                 <EffectPicker value={widget.material === 'classic' ? 'solid' : widget.material}
                   onChange={(effect) => props.onWidgetPreferences({ material: effect === 'solid' ? 'classic' : effect })} />
+                {widget.material !== 'classic' && <BlurControl value={widget.glassBlur} onChange={(glassBlur) => props.onWidgetPreferences({ glassBlur })} />}
                 {widget.material !== 'classic' && (
                   <>
                     <div className="settings-row">

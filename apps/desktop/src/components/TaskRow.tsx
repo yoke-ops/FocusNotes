@@ -1,8 +1,10 @@
 import { CalendarClock, Check, Flag, RotateCcw, Trash2 } from 'lucide-react'
 import type { TodoItem, TodoList } from '@focusnotes/core'
+import { getQuadrant, QUADRANTS } from '@focusnotes/core'
 import { formatDue } from '../date'
 import { useRef, useState } from 'react'
 import { taskMotionDuration } from '../motion'
+import { listIcon, QUADRANT_ICONS } from '../taskIcons'
 
 interface TaskRowProps {
   todo: TodoItem
@@ -47,6 +49,9 @@ export function TaskRow({ todo, lists, compact, onToggle, onEdit, onDelete, onRe
     setCompleting(false)
   }
   const list = lists.find((item) => item.id === todo.listId)
+  const ListIcon = listIcon(todo.listId)
+  const quadrant = getQuadrant(todo)
+  const PriorityIcon = QUADRANT_ICONS[quadrant]
   const due = todo.dueAt ? formatDue(todo, new Date()) : ''
   const overdue = Boolean(todo.dueAt && !todo.completed && Date.parse(todo.dueAt) < Date.now())
   return (
@@ -93,22 +98,14 @@ export function TaskRow({ todo, lists, compact, onToggle, onEdit, onDelete, onRe
                 </span>
               )}
               {list && (
-                <span className="task-list-name" style={{ color: list.color }}>
+                <span className="task-list-name">
+                  <ListIcon size={12} strokeWidth={1.8} aria-hidden="true" />
                   {list.name}
                 </span>
               )}
-              {todo.important && (
-                <span className="task-flag important">
-                  <Flag size={11} />
-                  重要
-                </span>
-              )}
-              {todo.urgent && (
-                <span className="task-flag urgent">
-                  <Flag size={11} />
-                  紧急
-                </span>
-              )}
+              <span className="task-priority" role="img" aria-label={QUADRANTS[quadrant].label} title={QUADRANTS[quadrant].label}>
+                <PriorityIcon size={13} strokeWidth={1.8} aria-hidden="true" />
+              </span>
               {!compact && todo.tags.map((tag) => <span className="task-tag" key={tag}>#{tag}</span>)}
             </span>
           </button>

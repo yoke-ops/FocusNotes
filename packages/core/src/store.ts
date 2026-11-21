@@ -226,8 +226,11 @@ export class TodoStore {
 
   private async persist(): Promise<void> {
     const payload = JSON.stringify(this.todos)
-    this.pending = this.pending.then(() => this.storage.setItem(this.key, payload)).catch(() => undefined)
-    await this.pending
+    const write = this.storage.prepareWrite?.(this.key, payload)
+    const result = this.pending.then(write ?? (() => this.storage.setItem(this.key, payload)))
+    this.pending = result.catch(() => undefined)
+    // Legacy adapters keep their existing best-effort persistence behavior.
+    await (write ? result : this.pending)
     this.emit()
   }
 

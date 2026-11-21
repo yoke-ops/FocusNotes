@@ -1,8 +1,9 @@
-const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, Notification, dialog, shell, net, screen, clipboard, safeStorage } = require('electron')
+const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, Notification, dialog, shell, net, screen, safeStorage } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs')
 const { randomUUID } = require('node:crypto')
 const { execFile } = require('node:child_process')
+const { glassWallpaper } = require('./wallpaper.cjs')
 
 const development = !app.isPackaged
 app.setName(development ? 'FocusNotes Dev' : 'FocusNotes')
@@ -115,9 +116,14 @@ function ensureProfiles() {
 }
 
 function activeDoc() {
-  const docs = ensureProfiles()
   const meta = readJson(metaPath(), {})
-  return docs.find((doc) => doc.id === meta.activeId) || docs[0]
+  return readProfileDoc(meta.activeId) || ensureProfiles()[0]
+}
+
+function readProfileDoc(id) {
+  if (typeof id !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(id)) return null
+  const doc = readJson(path.join(profileDir(), `${id}.json`), null)
+  return doc?.id === id && Array.isArray(doc.todos) ? doc : null
 }
 
 function setActive(id) { writeJson(metaPath(), { activeId: id }) }
@@ -458,8 +464,7 @@ function startOfDayLocal(date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
 }
 
-function widgetData() {
-  const doc = activeDoc()
+function widgetData(doc = activeDoc()) {
   const todos = (doc.todos || []).filter((todo) => todo && !todo.deleted)
   const open = todos.filter((todo) => !todo.completed).sort((a, b) => {
     const left = a.dueAt ? Date.parse(a.dueAt) : Number.POSITIVE_INFINITY
@@ -470,9 +475,26 @@ function widgetData() {
   const fontFamily = FONT_FAMILIES[extras.preferences?.font] || FONT_FAMILIES.system
   const savedMaterial = extras.preferences?.widget?.material
   const material = widgetMaterials.includes(savedMaterial) ? savedMaterial : 'frosted'
+  const now = new Date()
+  const agendaCounts = Object.fromEntries(Array.from({ length: 4 }, (_, offset) => {
+    const day = new Date(now)
+    day.setDate(day.getDate() + offset)
+    return [localDay(day), 0]
+  }))
+  const quadrantCounts = { 'important-urgent': 0, 'important-not-urgent': 0, 'not-important-urgent': 0, 'not-important-not-urgent': 0 }
+  for (const todo of open) {
+    const quadrant = `${todo.important ? 'important' : 'not-important'}-${todo.urgent ? 'urgent' : 'not-urgent'}`
+    quadrantCounts[quadrant]++
+    if (!todo.dueAt) continue
+    const day = localDay(new Date(todo.dueAt))
+    if (Object.hasOwn(agendaCounts, day)) agendaCounts[day]++
+  }
+  const completion = todayCompletionMain({ todos, extras, now })
   return {
-    today: localDay(),
+    today: localDay(now),
     appearance: { ...widgetPrefs, fontFamily, material },
+    agendaCounts,
+    quadrantCounts,
     items: open.slice(0, 12).map((todo) => ({
       id: todo.id,
       title: todo.title,
@@ -480,22 +502,22 @@ function widgetData() {
       important: Boolean(todo.important),
       urgent: Boolean(todo.urgent),
       tags: Array.isArray(todo.tags) ? todo.tags : [],
-      overdue: Boolean(todo.dueAt && Date.parse(todo.dueAt) < Date.now()),
+      overdue: Boolean(todo.dueAt && Date.parse(todo.dueAt) < +now),
     })),
     widgets: Array.isArray(extras.widgets) ? extras.widgets : ['tasks'],
     habits: Array.isArray(extras.habits) ? extras.habits : [],
     habitLogs: extras.habitLogs && typeof extras.habitLogs === 'object' ? extras.habitLogs : {},
     openCount: open.length,
-    doneToday: todayCompletionMain({ todos, extras, now: new Date() }).total,
-    completion: todayCompletionMain({ todos, extras, now: new Date() }),
+    doneToday: completion.total,
+    completion,
     countdowns: open.filter((todo) => Array.isArray(todo.tags) && todo.tags.includes('纪念日') && todo.dueAt)
       .slice(0, 3)
       .map((todo) => ({ id: todo.id, title: todo.title, dueAt: todo.dueAt })),
   }
 }
 
-function pushWidgetData() {
-  if (widgetWindow && !widgetWindow.isDestroyed()) widgetWindow.webContents.send('widget:data', widgetData())
+function pushWidgetData(doc) {
+  if (widgetWindow && !widgetWindow.isDestroyed()) widgetWindow.webContents.send('widget:data', widgetData(doc))
 }
 
 function notifyWorkspaceChanged() {
@@ -516,7 +538,7 @@ const FONT_FAMILIES = {
 /* ── 小部件磁吸：桌面边角 / 跟随前台应用窗口 ─────────────── */
 
 const widgetMaterials = ['classic', 'frosted', 'liquid']
-const widgetPrefs = { opacity: 100, glassTransparency: 28, snap: 'top-right', fontSize: 100, motion: 'full' }
+const widgetPrefs = { opacity: 100, glassTransparency: 28, glassBlur: 14, snap: 'top-right', fontSize: 100, motion: 'full' }
 const initialWidgetSize = { width: 168, height: 216 }
 let widgetSize = initialWidgetSize
 let snapTimer = null
@@ -526,6 +548,9 @@ function applyWidgetAppearance(prefs) {
     if (Number.isFinite(Number(prefs.opacity))) widgetPrefs.opacity = Math.min(100, Math.max(20, Number(prefs.opacity)))
     if (typeof prefs.glassTransparency === 'number' && Number.isFinite(prefs.glassTransparency)) {
       widgetPrefs.glassTransparency = Math.min(100, Math.max(0, Math.round(prefs.glassTransparency)))
+    }
+    if (typeof prefs.glassBlur === 'number' && Number.isFinite(prefs.glassBlur)) {
+      widgetPrefs.glassBlur = Math.min(32, Math.max(0, Math.round(prefs.glassBlur)))
     }
     if (typeof prefs.snap === 'string') widgetPrefs.snap = prefs.snap
     if (['full', 'light', 'off'].includes(prefs.motion)) widgetPrefs.motion = prefs.motion
@@ -648,6 +673,10 @@ function createTray() {
 }
 
 function registerIpc() {
+  ipcMain.handle('window:glass-wallpaper', (event) => {
+    if (event.sender !== mainWindow?.webContents && event.sender !== widgetWindow?.webContents) return null
+    return glassWallpaper()
+  })
   ipcMain.on('window:minimize', () => hideToTray(true))
   ipcMain.on('window:close', () => hideToTray(false))
   ipcMain.on('window:set-always-on-top', (_event, value) => mainWindow?.setAlwaysOnTop(Boolean(value), 'screen-saver'))
@@ -726,29 +755,6 @@ function registerIpc() {
     }
   })
 
-  ipcMain.handle('memo:read', (event, profileId) => {
-    if (event.sender !== mainWindow?.webContents) throw new Error('无法读取备忘录。')
-    const doc = ensureProfiles().find((item) => item.id === profileId)
-    if (!doc) throw new Error('找不到所选档案。')
-    return typeof doc.memo === 'string' ? doc.memo : ''
-  })
-
-  ipcMain.handle('memo:write', (event, profileId, memo) => {
-    if (event.sender !== mainWindow?.webContents) throw new Error('无法保存备忘录。')
-    if (typeof memo !== 'string' || memo.length > MAX_MEMO_LENGTH) throw new Error('备忘录不能超过 100 万字符。')
-    const doc = ensureProfiles().find((item) => item.id === profileId)
-    if (!doc) throw new Error('找不到所选档案。')
-    if ((doc.memo ?? '') === memo) return
-    saveDoc({ ...doc, memo, updatedAt: new Date().toISOString() })
-  })
-
-  ipcMain.handle('memo:copy', (event, memo) => {
-    if (event.sender !== mainWindow?.webContents || typeof memo !== 'string' || memo.length > MAX_MEMO_LENGTH) {
-      throw new Error('无法复制备忘录。')
-    }
-    clipboard.writeText(memo)
-  })
-
   ipcMain.handle('workspace:read', () => {
     const doc = activeDoc()
     return {
@@ -762,18 +768,21 @@ function registerIpc() {
 
   ipcMain.handle('workspace:write', (_event, data) => {
     try {
-      const todos = normalizeTodos(data && data.todos)
-      if (!todos) return { ok: false, error: '待办数据格式无效。' }
-      const doc = activeDoc()
+      const doc = readProfileDoc(data?.profileId)
+      if (!doc) return { ok: false, error: '找不到要保存的记录档案。' }
+      const isActive = doc.id === readJson(metaPath(), {}).activeId
+      if (data.requireActive && !isActive) return { ok: false, error: '档案已切换，本次同步未应用。' }
+      const todos = data.todos === undefined ? undefined : normalizeTodos(data.todos)
+      if (todos === null) return { ok: false, error: '待办数据格式无效。' }
       const extras = data && data.extras && typeof data.extras === 'object' ? data.extras : null
       if (extras && JSON.stringify(extras).length > 8 * 1024 * 1024) {
         return { ok: false, error: '扩展数据过大，已拒绝写入。' }
       }
-      doc.todos = todos
+      if (todos) doc.todos = todos
       if (extras) doc.extras = extras
       doc.updatedAt = new Date().toISOString()
       saveDoc(doc)
-      notifyWorkspaceChanged()
+      if (isActive) pushWidgetData(doc)
       return { ok: true, count: doc.todos.length }
     } catch (reason) {
       return { ok: false, error: reason instanceof Error ? reason.message : '写入工作区失败。' }
@@ -929,7 +938,8 @@ function registerIpc() {
     if (target.canceled || !target.filePath) return { ok: false, canceled: true, message: '已取消导出。' }
     fs.writeFileSync(target.filePath, JSON.stringify({
       app: 'FocusNotes', version: 2, exportedAt: new Date().toISOString(), profile: doc.name,
-      todos: doc.todos, extras: doc.extras ?? null, memo: doc.memo ?? '',
+      todos: doc.todos, extras: doc.extras ?? null,
+      ...(typeof doc.memo === 'string' && doc.memo ? { memo: doc.memo } : {}),
     }, null, 2), 'utf8')
     return { ok: true, message: `已导出到 ${target.filePath}` }
   })
@@ -953,7 +963,7 @@ function registerIpc() {
       const now = new Date().toISOString()
       const doc = {
         id: newProfileId(), name: uniqueName(baseName || '导入的记录', docs), createdAt: now, updatedAt: now,
-        todos, memo, extras: raw && typeof raw === 'object' && raw.extras && typeof raw.extras === 'object' ? raw.extras : null,
+        todos, ...(memo ? { memo } : {}), extras: raw && typeof raw === 'object' && raw.extras && typeof raw.extras === 'object' ? raw.extras : null,
       }
       saveDoc(doc)
       setActive(doc.id)
@@ -1099,7 +1109,7 @@ ipcMain.handle('gitee:get', () => {
     if (raw.token && safeStorage.isEncryptionAvailable()) {
       try { token = safeStorage.decryptString(Buffer.from(raw.token, 'base64')) } catch { token = '' }
     }
-    return { owner: raw.owner || '', repo: raw.repo || '', branch: raw.branch || 'master', path: raw.path || 'focusnotes/data.json', token }
+    return { owner: raw.owner || '', repo: raw.repo || '', branch: raw.branch || 'master', path: raw.path || 'focusnotes/data.json', profileId: raw.profileId || null, token }
   } catch { return null }
 })
 
@@ -1110,7 +1120,13 @@ ipcMain.handle('gitee:set', (_event, config) => {
       repo: String(config?.repo || '').trim(),
       branch: String(config?.branch || 'master').trim() || 'master',
       path: String(config?.path || 'focusnotes/data.json').trim() || 'focusnotes/data.json',
+      profileId: activeDoc().id,
       token: safeStorage.isEncryptionAvailable() ? safeStorage.encryptString(String(config?.token || '')).toString('base64') : '',
+    }
+    const previous = readJson(giteeConfigPath(), null)
+    if (previous?.profileId && previous.profileId !== record.profileId &&
+      previous.owner === record.owner && previous.repo === record.repo && previous.branch === record.branch && previous.path === record.path) {
+      return { ok: false, message: '这个远端文件已绑定另一份本地档案，请为当前档案使用不同的文件路径。' }
     }
     writeJson(giteeConfigPath(), record)
     return { ok: true, encrypted: safeStorage.isEncryptionAvailable() }
