@@ -53,13 +53,8 @@ export interface WidgetItem {
   overdue: boolean
 }
 
-export interface WidgetAppearance {
-  palette?: string
+export interface WidgetAppearance extends Pick<import('@focusnotes/core').WidgetPreferences, 'material' | 'opacity' | 'glassTransparency' | 'snap' | 'fontSize'> {
   motion?: import('./motion').MotionMode
-  opacity: number
-  darkMode: 'system' | 'light' | 'dark'
-  snap: import('@focusnotes/core').WidgetSnap
-  fontSize: number
   fontFamily: string
 }
 
@@ -90,7 +85,6 @@ declare global {
       close(): void
       setAlwaysOnTop(value: boolean): void
       setOpacity(value: number): void
-      setEffect(effect: WindowEffect): void
       setMode(mode: 'full' | 'mini'): void
       onWorkspaceChanged(callback: () => void): () => void
       onNavigateView(callback: (view: string) => void): () => void
@@ -112,7 +106,7 @@ declare global {
         toggle(id: string): Promise<{ ok: boolean; error?: string }>
         toggleHabit(habitId: string, day: string): Promise<{ ok: boolean; error?: string }>
         resize(width: number, height: number): void
-        appearance(prefs: import('@focusnotes/core').WidgetPreferences & { palette: import('./palettes').PaletteId; motion?: import('./motion').MotionMode }): void
+        appearance(prefs: import('@focusnotes/core').WidgetPreferences & { motion?: import('./motion').MotionMode }): void
         add(title: string): Promise<{ ok: boolean; id?: string; error?: string }>
         openMain(view?: string): void
         close(): void

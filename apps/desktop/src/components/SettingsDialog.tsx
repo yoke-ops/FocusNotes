@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import {
   Bell,
   Check,
@@ -89,9 +89,23 @@ const THEMES: { id: ThemeMode; label: string; icon: typeof Sun }[] = [
 
 const EFFECTS: { id: WindowEffect; label: string; hint: string; icon: typeof Sparkles }[] = [
   { id: 'solid', label: '纯色', hint: '清晰稳定', icon: Sparkles },
-  { id: 'frosted', label: '毛玻璃', hint: '亚克力背景虚化', icon: Waves },
-  { id: 'liquid', label: '液态玻璃', hint: '云母光泽与折射', icon: Droplets },
+  { id: 'frosted', label: '毛玻璃', hint: '半透明雾面', icon: Waves },
+  { id: 'liquid', label: '液态玻璃', hint: '半透明渐层与边缘高光', icon: Droplets },
 ]
+
+function EffectPicker({ value, onChange }: { value: WindowEffect; onChange: (effect: WindowEffect) => void }) {
+  return (
+    <div className="effect-grid" role="group" aria-label="窗口质感">
+      {EFFECTS.map(({ id, label, hint, icon: Icon }) => (
+        <button type="button" key={id} className={`effect-card effect-${id}${id === value ? ' active' : ''}`}
+          aria-pressed={id === value} onClick={() => onChange(id)}>
+          <Icon size={16} aria-hidden="true" />
+          <span><strong>{label}</strong><small>{hint}</small></span>
+        </button>
+      ))}
+    </div>
+  )
+}
 
 const SNAP_OPTIONS: Array<{ id: WidgetSnap; label: string }> = [
   { id: 'none', label: '自由' },
@@ -122,6 +136,9 @@ const SECTIONS: { id: Section; label: string; icon: typeof Palette }[] = [
 
 export function SettingsDialog(props: SettingsDialogProps) {
   const [section, setSection] = useState<Section>('appearance')
+  const [glassControlsOpen, setGlassControlsOpen] = useState(false)
+  const glassControlsId = useId()
+  const widget = props.preferences.widget
 
   return (
     <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) props.onClose() }}>
@@ -216,17 +233,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
               </div>
               <div className="settings-group">
                 <span className="settings-label">窗口质感</span>
-                <div className="effect-grid">
-                  {EFFECTS.map((effect) => {
-                    const Icon = effect.icon
-                    return (
-                      <button key={effect.id} className={`effect-card effect-${effect.id}${props.windowEffect === effect.id ? ' active' : ''}`} onClick={() => props.onWindowEffect(effect.id)}>
-                        <Icon size={16} />
-                        <span><strong>{effect.label}</strong><small>{effect.hint}</small></span>
-                      </button>
-                    )
-                  })}
-                </div>
+                <EffectPicker value={props.windowEffect} onChange={props.onWindowEffect} />
               </div>
               <div className="settings-group">
                 <label className="settings-row">
@@ -312,23 +319,39 @@ export function SettingsDialog(props: SettingsDialogProps) {
               </div>
               <div className="settings-group">
                 <span className="settings-label"><Palette size={12} /> 小组件外观</span>
-                <label className="settings-row">
-                  <span><strong>不透明度</strong><small>小组件窗口的通透程度</small></span>
+                <EffectPicker value={widget.material === 'classic' ? 'solid' : widget.material}
+                  onChange={(effect) => props.onWidgetPreferences({ material: effect === 'solid' ? 'classic' : effect })} />
+                {widget.material !== 'classic' && (
+                  <>
+                    <div className="settings-row">
+                      <span><strong>雾面透明度</strong><small>数值越高，背景越通透</small></span>
+                      <button type="button" className="secondary-button" aria-expanded={glassControlsOpen}
+                        aria-controls={glassControlsId} aria-label={`调整雾面透明度，当前 ${widget.glassTransparency}%`}
+                        onClick={() => setGlassControlsOpen((open) => !open)}>
+                        {glassControlsOpen ? '收起' : '调整'} · {widget.glassTransparency}%
+                      </button>
+                    </div>
+                    <div id={glassControlsId} hidden={!glassControlsOpen}>
+                      <label className="settings-row">
+                        <span><strong>透明度</strong></span>
+                        <div className="range-wrap">
+                          <input type="range" min={0} max={100} step={1} value={widget.glassTransparency}
+                            aria-label="雾面透明度" aria-valuetext={`${widget.glassTransparency}%`}
+                            onChange={(event) => props.onWidgetPreferences({ glassTransparency: Number(event.target.value) })} />
+                          <output>{widget.glassTransparency}%</output>
+                        </div>
+                      </label>
+                    </div>
+                  </>
+                )}
+                {widget.material === 'classic' && <label className="settings-row">
+                  <span><strong>底色浓度</strong><small>数值越高，背景底色越实</small></span>
                   <div className="range-wrap">
                     <input type="range" min={20} max={100} step={1} value={props.preferences.widget.opacity}
                       onChange={(event) => props.onWidgetPreferences({ opacity: Number(event.target.value) })} />
                     <output>{props.preferences.widget.opacity}%</output>
                   </div>
-                </label>
-                <label className="settings-row">
-                  <span><strong>夜间模式</strong><small>小组件独立跟随系统或强制明暗</small></span>
-                  <select value={props.preferences.widget.darkMode}
-                    onChange={(event) => props.onWidgetPreferences({ darkMode: event.target.value as WidgetPreferences['darkMode'] })}>
-                    <option value="system">跟随系统</option>
-                    <option value="light">浅色</option>
-                    <option value="dark">深色</option>
-                  </select>
-                </label>
+                </label>}
                 <label className="settings-row">
                   <span><strong><Type size={12} /> 文字大小</strong><small>调整小组件的字号</small></span>
                   <div className="range-wrap">

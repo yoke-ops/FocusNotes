@@ -115,7 +115,6 @@ export default function App() {
 
   useEffect(() => { window.focusDesktop?.setAlwaysOnTop(alwaysOnTop); window.localStorage.setItem('focusnotes.pin', String(alwaysOnTop)) }, [alwaysOnTop])
   useEffect(() => {
-    window.focusDesktop?.setEffect(windowEffect)
     window.localStorage.setItem('focusnotes.effect', windowEffect)
   }, [windowEffect])
   useEffect(() => {
@@ -131,8 +130,8 @@ export default function App() {
     const prefs = ws.extras.preferences
     const family = FONT_OPTIONS.find((item) => item.id === prefs.font)?.family || FONT_OPTIONS[0]!.family
     document.documentElement.style.setProperty('--app-font', family)
-    window.focusDesktop?.widget.appearance({ ...prefs.widget, palette, motion })
-  }, [ws.extras.preferences.font, ws.extras.preferences.widget, palette, motion])
+    window.focusDesktop?.widget.appearance({ ...prefs.widget, motion })
+  }, [ws.extras.preferences.font, ws.extras.preferences.widget, motion])
 
   useEffect(() => {
     applyPalette(palette)

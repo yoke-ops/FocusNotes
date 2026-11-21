@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Bot, CalendarDays, Check, Flame, LayoutGrid, ListTodo, Plus, Timer, X } from 'lucide-react'
+import { Archive, Bot, Calendar, CalendarDays, Check, Flame, LayoutGrid, ListTodo, Plus, Rocket, Timer, X } from 'lucide-react'
 import {
   QUADRANTS,
   addDays,
@@ -12,7 +12,6 @@ import {
   type WidgetKind,
 } from '@focusnotes/core'
 import type { WidgetData } from './desktop'
-import { applyPalette } from './palettes'
 import { resolveMotion } from './motion'
 
 const META: Record<WidgetKind, { title: string; icon: typeof ListTodo; view: string }> = {
@@ -23,6 +22,13 @@ const META: Record<WidgetKind, { title: string; icon: typeof ListTodo; view: str
   countdown: { title: '倒数纪念日', icon: Timer, view: 'today' },
   assistant: { title: 'AI 助手', icon: Bot, view: 'assistant' },
 }
+
+const QUADRANT_ICONS = [
+  ['important-urgent', Rocket],
+  ['not-important-urgent', Timer],
+  ['important-not-urgent', Calendar],
+  ['not-important-not-urgent', Archive],
+] as const
 
 function shortDue(dueAt: string | null, overdue: boolean, today: string): string {
   if (!dueAt) return ''
@@ -57,6 +63,7 @@ export function WidgetWindow() {
   const [title, setTitle] = useState('')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
+  const material = data?.appearance.material ?? 'frosted'
 
   useEffect(() => {
     const off = window.focusDesktop?.widget.onData(setData)
@@ -66,13 +73,12 @@ export function WidgetWindow() {
 
   useEffect(() => {
     const appearance = data?.appearance
-    applyPalette(appearance?.palette)
     document.documentElement.dataset.motion = resolveMotion(appearance?.motion)
     const root = document.documentElement
     root.style.setProperty('--app-font', appearance?.fontFamily || '')
     root.style.setProperty('--w-scale', String((appearance?.fontSize || 100) / 100))
-    if (appearance?.darkMode && appearance.darkMode !== 'system') root.dataset.theme = appearance.darkMode
-    else delete root.dataset.theme
+    root.style.setProperty('--w-density', `${appearance?.opacity ?? 100}%`)
+    root.style.setProperty('--w-glass-transparency', `${appearance?.glassTransparency ?? 28}%`)
   }, [data?.appearance])
 
   const kinds = useMemo(() => data?.widgets?.length ? data.widgets : (['tasks'] as WidgetKind[]), [data])
@@ -110,9 +116,8 @@ export function WidgetWindow() {
 
   const todayDate = useMemo(() => (data ? startOfDay(new Date(`${data.today}T00:00:00`)) : startOfDay(new Date())), [data])
 
-  return <div className="widget-window">
+  return <div className="widget-window" data-material={material}>
     <header className="widget-grip">
-      <span className="widget-dot" />
       <button className="widget-close" onClick={() => window.focusDesktop?.widget.close()} aria-label="关闭小部件"><X size={10} /></button>
     </header>
 
@@ -149,12 +154,14 @@ export function WidgetWindow() {
 
         if (kind === 'quadrant') return <Section key={kind} kind={kind} onOpen={openView}>
           <div className="widget-quadrants">
-            {(Object.keys(QUADRANTS) as (keyof typeof QUADRANTS)[]).map((quadrant) => (
-              <div key={quadrant} className="widget-quadrant" style={{ borderColor: `${QUADRANTS[quadrant].color}66` }}>
-                <strong>{(data?.items ?? []).filter((item) => getQuadrant(item) === quadrant).length}</strong>
-                <small>{QUADRANTS[quadrant].shortLabel.split(' · ')[1] ?? '其他'}</small>
+            {QUADRANT_ICONS.map(([quadrant, Icon]) => {
+              const count = (data?.items ?? []).filter((item) => getQuadrant(item) === quadrant).length
+              const label = QUADRANTS[quadrant].label
+              return <div key={quadrant} className="widget-quadrant" role="img" aria-label={`${label}，${count} 项`} title={label}>
+                <Icon size={16} aria-hidden="true" focusable="false" />
+                <strong>{count}</strong>
               </div>
-            ))}
+            })}
           </div>
         </Section>
 
@@ -166,7 +173,7 @@ export function WidgetWindow() {
               const done = logs.includes(data?.today ?? '')
               const scheduled = isHabitScheduled(habit, todayDate)
               return <div key={habit.id} className="widget-habit">
-                <span>{habit.emoji} {habit.name}</span>
+                <span>{habit.name}</span>
                 <span className="widget-habit-streak">{habitStreak(habit, logs, todayDate)}天</span>
                 <button className={`habit-check${done ? ' done' : ''}`} disabled={!scheduled}
                   onClick={() => void toggleHabit(habit.id, data?.today ?? '')}>{done ? '✓' : scheduled ? '打卡' : '休'}</button>

@@ -100,7 +100,11 @@ export type FontId = 'system' | 'source-han-sans' | 'source-han-serif' | 'pingfa
 export type NavId = 'today' | 'pomodoro' | 'habits' | 'calendar' | 'quadrant' | 'widgets' | 'search' | 'assistant' | 'notes'
 
 export interface WidgetPreferences {
+  material: 'frosted' | 'classic' | 'liquid'
+  /** Background density percentage. */
   opacity: number
+  /** Transparency of the tint applied over the native blur. */
+  glassTransparency: number
   darkMode: 'system' | 'light' | 'dark'
   alwaysOnTop: boolean
   snap: WidgetSnap

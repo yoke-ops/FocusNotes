@@ -412,9 +412,11 @@ function widgetData() {
   })
   const extras = doc.extras && typeof doc.extras === 'object' ? doc.extras : {}
   const fontFamily = FONT_FAMILIES[extras.preferences?.font] || FONT_FAMILIES.system
+  const savedMaterial = extras.preferences?.widget?.material
+  const material = widgetMaterials.includes(savedMaterial) ? savedMaterial : 'frosted'
   return {
     today: localDay(),
-    appearance: { ...widgetPrefs, fontFamily },
+    appearance: { ...widgetPrefs, fontFamily, material },
     items: open.slice(0, 12).map((todo) => ({
       id: todo.id,
       title: todo.title,
@@ -456,7 +458,8 @@ const FONT_FAMILIES = {
 
 /* ── 小部件磁吸：桌面边角 / 跟随前台应用窗口 ─────────────── */
 
-const widgetPrefs = { opacity: 100, darkMode: 'system', snap: 'top-right', fontSize: 100, palette: 'classic', motion: 'full' }
+const widgetMaterials = ['classic', 'frosted', 'liquid']
+const widgetPrefs = { opacity: 100, glassTransparency: 28, snap: 'top-right', fontSize: 100, motion: 'full' }
 const initialWidgetSize = { width: 168, height: 216 }
 let widgetSize = initialWidgetSize
 let snapTimer = null
@@ -464,14 +467,14 @@ let snapTimer = null
 function applyWidgetAppearance(prefs) {
   if (prefs && typeof prefs === 'object') {
     if (Number.isFinite(Number(prefs.opacity))) widgetPrefs.opacity = Math.min(100, Math.max(20, Number(prefs.opacity)))
-    if (['system', 'light', 'dark'].includes(prefs.darkMode)) widgetPrefs.darkMode = prefs.darkMode
+    if (typeof prefs.glassTransparency === 'number' && Number.isFinite(prefs.glassTransparency)) {
+      widgetPrefs.glassTransparency = Math.min(100, Math.max(0, Math.round(prefs.glassTransparency)))
+    }
     if (typeof prefs.snap === 'string') widgetPrefs.snap = prefs.snap
-    if (typeof prefs.palette === 'string') widgetPrefs.palette = prefs.palette
     if (['full', 'light', 'off'].includes(prefs.motion)) widgetPrefs.motion = prefs.motion
     if (Number.isFinite(Number(prefs.fontSize))) widgetPrefs.fontSize = Math.min(140, Math.max(80, Number(prefs.fontSize)))
   }
   if (!widgetWindow || widgetWindow.isDestroyed()) return
-  widgetWindow.setOpacity(widgetPrefs.opacity / 100)
   pushWidgetData()
 }
 
@@ -594,10 +597,6 @@ function registerIpc() {
   ipcMain.on('window:set-opacity', (_event, value) => {
     const opacity = Math.min(1, Math.max(0.2, Number(value)))
     if (Number.isFinite(opacity)) mainWindow?.setOpacity(opacity)
-  })
-  ipcMain.on('window:set-effect', (_event, effect) => {
-    const material = effect === 'frosted' ? 'acrylic' : effect === 'liquid' ? 'mica' : 'none'
-    try { mainWindow?.setBackgroundMaterial(material) } catch { /* 系统不支持时保留纯色背景 */ }
   })
   ipcMain.on('window:set-mode', (_event, mode) => {
     if (!mainWindow) return
