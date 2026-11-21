@@ -97,7 +97,7 @@ export type WidgetSnap = 'none' | 'top-left' | 'top-right' | 'bottom-left' | 'bo
 export type FontId = 'system' | 'source-han-sans' | 'source-han-serif' | 'pingfang' | 'microsoft-yahei' | 'georgia'
 
 /** 左侧功能栏可排序/隐藏的视图。 */
-export type NavId = 'today' | 'pomodoro' | 'habits' | 'calendar' | 'quadrant' | 'widgets' | 'search' | 'assistant' | 'notes'
+export type NavId = 'today' | 'memos' | 'pomodoro' | 'habits' | 'calendar' | 'quadrant' | 'widgets' | 'search' | 'assistant' | 'notes'
 
 export interface WidgetPreferences {
   material: 'frosted' | 'classic' | 'liquid'
@@ -124,6 +124,18 @@ export interface WorkspacePreferences {
   navHidden: NavId[]
 }
 
+/** 备忘录：独立于待办的长文本记录。 */
+export interface Memo {
+  id: string
+  title: string
+  content: string
+  pinned: boolean
+  createdAt: string
+  updatedAt: string
+  revision: number
+  deleted: boolean
+}
+
 export interface WorkspaceExtras {
   version: number
   lists: TodoList[]
@@ -131,6 +143,7 @@ export interface WorkspaceExtras {
   /** habitId -> 已打卡日期（YYYY-MM-DD，本地时区）。 */
   habitLogs: Record<string, string[]>
   focusSessions: FocusSession[]
+  memos: Memo[]
   preferences: WorkspacePreferences
   /** 已添加到桌面小部件的类型。 */
   widgets: WidgetKind[]

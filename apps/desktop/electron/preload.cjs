@@ -52,6 +52,12 @@ contextBridge.exposeInMainWorld('focusDesktop', {
     read: () => ipcRenderer.invoke('workspace:read'),
     write: (data) => ipcRenderer.invoke('workspace:write', data),
   },
+  appVersion: () => ipcRenderer.invoke('app:version'),
+  setZoom: (value) => ipcRenderer.invoke('ui:set-zoom', value),
+  gitee: {
+    get: () => ipcRenderer.invoke('gitee:get'),
+    set: (config) => ipcRenderer.invoke('gitee:set', config),
+  },
   profile: {
     read: () => ipcRenderer.invoke('profile:read'),
     write: (raw) => ipcRenderer.invoke('profile:write', raw),

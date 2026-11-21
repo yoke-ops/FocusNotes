@@ -122,6 +122,10 @@ export function WidgetWindow() {
     </header>
 
     <div className="widget-scroll">
+      {data?.completion && <div className="widget-completion-bar">
+        <span>今日完成 <strong>{data.completion.total}</strong></span>
+        <small>待办 {data.completion.tasks} · 习惯 {data.completion.habits} · 番茄 {data.completion.pomodoros}</small>
+      </div>}
       {kinds.map((kind) => {
         if (kind === 'tasks') return <Section key={kind} kind={kind} onOpen={openView}>
           {data?.items.length ? data.items.slice(0, 4).map((item) => (

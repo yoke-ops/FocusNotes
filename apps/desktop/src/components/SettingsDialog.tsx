@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import {
   Bell,
   Check,
@@ -43,6 +43,7 @@ import {
 import type { ThemeMode, WindowEffect } from '../desktop'
 import { PALETTES, type PaletteId } from '../palettes'
 import { MOTION_OPTIONS, resolveMotion, type MotionMode } from '../motion'
+import { GiteePanel } from './GiteePanel'
 
 interface SettingsDialogProps {
   theme: ThemeMode
@@ -74,6 +75,7 @@ interface SettingsDialogProps {
   onExportPersonal: (kind: 'lists' | 'habits' | 'history' | 'all') => void
   onImportPersonal: () => void
   onOpenProfile: () => void
+  onGiteeChanged?: () => void
   onReveal: () => void
   onClose: () => void
 }
@@ -139,6 +141,22 @@ export function SettingsDialog(props: SettingsDialogProps) {
   const [glassControlsOpen, setGlassControlsOpen] = useState(false)
   const glassControlsId = useId()
   const widget = props.preferences.widget
+  const [version, setVersion] = useState('0.1.1')
+  const [uiScale, setUiScale] = useState(() => {
+    const saved = Number(localStorage.getItem('focusnotes.uiScale') ?? 1)
+    return Number.isFinite(saved) && saved >= 0.8 && saved <= 1.4 ? saved : 1
+  })
+
+  useEffect(() => {
+    void window.focusDesktop?.appVersion().then((value) => { if (value) setVersion(value) }).catch(() => undefined)
+  }, [])
+
+  function changeUiScale(value: number) {
+    const next = Math.round(Math.min(1.4, Math.max(0.8, value)) * 20) / 20
+    setUiScale(next)
+    localStorage.setItem('focusnotes.uiScale', String(next))
+    void window.focusDesktop?.setZoom(next)
+  }
 
   return (
     <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) props.onClose() }}>
@@ -155,7 +173,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
           })}
           <div className="settings-nav-foot">
             <span className="brand-mark small"><NotebookPen size={12} /></span>
-            <div><strong>FocusNotes</strong><small>v2.0.0</small></div>
+            <div><strong>FocusNotes</strong><small>v{version}</small></div>
           </div>
         </aside>
 
@@ -232,6 +250,13 @@ export function SettingsDialog(props: SettingsDialogProps) {
                 </label>
               </div>
               <div className="settings-group">
+                <span className="settings-label"><Palette size={12} /> 界面文字大小</span>
+                <p className="settings-hint">整体缩放界面文字与控件，当前 {Math.round(uiScale * 100)}%。</p>
+                <input type="range" min={0.8} max={1.4} step={0.05} value={uiScale}
+                  onChange={(event) => changeUiScale(Number(event.target.value))} aria-label="界面文字大小" />
+                <div className="scale-legend"><span>80%</span><span>100%</span><span>140%</span></div>
+              </div>
+              <div className="settings-group">
                 <span className="settings-label">窗口质感</span>
                 <EffectPicker value={props.windowEffect} onChange={props.onWindowEffect} />
               </div>
@@ -244,19 +269,23 @@ export function SettingsDialog(props: SettingsDialogProps) {
               <div className="settings-group">
                 <span className="settings-label"><LayoutGrid size={12} /> 左侧功能栏</span>
                 <div className="nav-list">
-                  {props.preferences.navOrder.map((id, index) => {
+                  {(() => {
+                    const full = NAV_ITEMS.map((item) => item.id)
+                    const ordered = [...props.preferences.navOrder.filter((id) => full.includes(id)), ...full.filter((id) => !props.preferences.navOrder.includes(id))]
+                    return ordered
+                  })().map((id, index, list) => {
                     const meta = NAV_ITEMS.find((item) => item.id === id)
                     const hidden = props.preferences.navHidden.includes(id)
                     return <div key={id} className={`nav-row${hidden ? ' hidden' : ''}`}>
                       <button className="mini-action" disabled={index === 0}
                         onClick={() => {
-                          const next = [...props.preferences.navOrder]
+                          const next = [...list]
                           ;[next[index - 1], next[index]] = [next[index]!, next[index - 1]!]
                           props.onNavigation({ navOrder: next })
                         }} aria-label="上移"><ArrowUp size={11} /></button>
-                      <button className="mini-action" disabled={index === props.preferences.navOrder.length - 1}
+                      <button className="mini-action" disabled={index === list.length - 1}
                         onClick={() => {
-                          const next = [...props.preferences.navOrder]
+                          const next = [...list]
                           ;[next[index], next[index + 1]] = [next[index + 1]!, next[index]!]
                           props.onNavigation({ navOrder: next })
                         }} aria-label="下移"><ArrowDown size={11} /></button>
@@ -390,6 +419,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
           {section === 'data' && (
             <>
               <header className="settings-head"><h2>数据与档案</h2><p>所有数据都保存在本机。</p></header>
+              <GiteePanel onChanged={() => props.onGiteeChanged?.()} />
               <div className="settings-group">
                 <button className="settings-row clickable" onClick={props.onOpenProfile}>
                   <span><strong>当前档案</strong><small>{props.profileName}</small></span>

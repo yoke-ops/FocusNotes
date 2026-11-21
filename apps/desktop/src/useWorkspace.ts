@@ -44,6 +44,7 @@ export interface WorkspaceApi {
   purgeTask(id: string): Promise<void>
   purgeTrash(): Promise<void>
   updateExtras(patch: (current: WorkspaceExtras) => WorkspaceExtras): void
+  replaceAll(todos: TodoItem[], extras: WorkspaceExtras): Promise<void>
   toggleHabit(habitId: string, day: string): void
   addHabit(habit: Habit): void
   updateHabit(habit: Habit): void
@@ -154,6 +155,17 @@ export function useWorkspace(): WorkspaceApi {
     }
   }, [desktop, store])
 
+  /** 同步合并后整体替换内存与磁盘数据。 */
+  const replaceAll = useCallback(async (nextTodos: TodoItem[], nextExtras: WorkspaceExtras) => {
+    setExtras(nextExtras)
+    extrasRef.current = nextExtras
+    store.hydrate(nextTodos)
+    try {
+      if (desktop?.workspace) await desktop.workspace.write({ todos: nextTodos, extras: nextExtras })
+      else localStorage.setItem(TODOS_KEY, JSON.stringify(nextTodos))
+    } catch { /* 持久化失败不阻塞界面 */ }
+  }, [desktop, store])
+
   const updateExtras = useCallback((patch: (current: WorkspaceExtras) => WorkspaceExtras) => {
     setExtras((current) => {
       const next = normalizeExtras(patch(current))
@@ -239,6 +251,7 @@ export function useWorkspace(): WorkspaceApi {
     purgeTask,
     purgeTrash,
     updateExtras,
+    replaceAll,
     toggleHabit,
     addHabit,
     updateHabit,

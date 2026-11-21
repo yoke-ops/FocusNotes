@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { buildSyncPayload, createGiteeSync, mergeSyncPayload, type GiteeConfig } from '@focusnotes/core'
 import { CalendarPlus, ListTodo, X } from 'lucide-react'
 import {
   dateKey,
   FONT_OPTIONS,
   LIST_COLORS,
   sortTodos,
+  todayCompletion,
   type TodoDraft,
   type TodoItem,
 } from '@focusnotes/core'
 import { IconRail } from './components/IconRail'
+import { MemosView } from './components/MemosView'
 import { Sidebar } from './components/Sidebar'
 import { TopBar, MiniTopBar } from './components/TopBar'
 import { TaskListView } from './components/TaskListView'
@@ -50,6 +53,11 @@ function loadBool(key: string, fallback: boolean): boolean {
 }
 
 export default function App() {
+  useEffect(() => {
+    const saved = Number(localStorage.getItem('focusnotes.uiScale') ?? 1)
+    if (Number.isFinite(saved) && saved >= 0.8 && saved <= 1.4 && saved !== 1) void window.focusDesktop?.setZoom(saved)
+  }, [])
+
   const ws = useWorkspace()
   const timer = usePomodoroTimer(ws.extras.preferences, ws.addFocusSession, ws.notify)
   const [view, setView] = useState<ViewId>('today')
@@ -149,8 +157,11 @@ export default function App() {
       enabled: remindEnabled,
       leadMinutes,
       items: active.map(({ id, title, dueAt, completed }) => ({ id, title, dueAt, completed })),
+      habits: ws.extras.habits
+        .filter((habit) => !habit.archived && habit.reminder)
+        .map((habit) => ({ id: habit.id, name: habit.name, reminder: habit.reminder })),
     })
-  }, [active, remindEnabled, leadMinutes])
+  }, [active, remindEnabled, leadMinutes, ws.extras.habits])
 
   useEffect(() => {
     window.localStorage.setItem('focusnotes.theme', themeMode)
@@ -249,6 +260,13 @@ export default function App() {
       return applyProfileResult(await api.reveal(), '已打开档案文件夹。')
     },
   }
+
+  const completion = useMemo(() => todayCompletion({
+    todos: active,
+    habits: ws.extras.habits,
+    habitLogs: ws.extras.habitLogs,
+    sessions: ws.extras.focusSessions,
+  }), [active, ws.extras.habits, ws.extras.habitLogs, ws.extras.focusSessions])
 
   const counts = {
     today: open.filter((todo) => todo.dueAt && dateKey(todo.dueAt) <= todayKey).length,
@@ -364,6 +382,15 @@ export default function App() {
       sessions={ws.extras.focusSessions}
       tasks={open}
       timer={timer}
+      completion={completion}
+    />
+  } else if (view === 'memos') {
+    title = '备忘录'
+    subtitle = '记录长文字，随时回看'
+    content = <MemosView
+      memos={ws.extras.memos}
+      onSave={(memo) => ws.updateExtras((current) => ({ ...current, memos: [memo, ...(current.memos ?? []).filter((item) => item.id !== memo.id)] }))}
+      onDelete={(id) => ws.updateExtras((current) => ({ ...current, memos: (current.memos ?? []).filter((item) => item.id !== id) }))}
     />
   } else if (view === 'habits') {
     title = '习惯'
@@ -400,7 +427,7 @@ export default function App() {
       onUpdate={(id, draft) => void run(ws.updateTask(id, draft))}
     />
   } else if (view === 'notes') {
-    title = '备忘录'
+    title = '本地便笺'
     subtitle = ws.profile.name
     content = <NotesView key={ws.profile.id} profileId={ws.profile.id} />
   } else if (view === 'assistant') {
@@ -416,6 +443,7 @@ export default function App() {
       lists={lists}
       habits={ws.extras.habits}
       habitLogs={ws.extras.habitLogs}
+      completion={completion}
       onNavigate={setView}
       onToggleTask={(id) => void run(ws.toggleTask(id))}
       onToggleHabit={ws.toggleHabit}
@@ -443,6 +471,50 @@ export default function App() {
     onDelete={(id) => { setEditor(null); setDeleting(todos.find((todo) => todo.id === id) ?? null) }}
   />
 
+  const [giteeReady, setGiteeReady] = useState(0)
+  const giteeRef = useRef<GiteeConfig | null>(null)
+  const syncingRef = useRef(false)
+  const skipPushRef = useRef(false)
+
+  /** 读取加密保存的 Gitee 配置并首次拉取。 */
+  useEffect(() => {
+    let alive = true
+    void (async () => {
+      const config = await window.focusDesktop?.gitee.get().catch(() => null)
+      if (!alive || !config?.owner || !config?.repo || !config?.token) return
+      giteeRef.current = { owner: config.owner, repo: config.repo, branch: config.branch || 'master', token: config.token, path: config.path }
+      syncingRef.current = true
+      try {
+        const remote = await createGiteeSync(giteeRef.current, fetch).pull()
+        if (remote && alive) {
+          skipPushRef.current = true
+          const merged = mergeSyncPayload(buildSyncPayload(ws.todos, ws.extras), remote)
+          await ws.replaceAll(merged.todos, merged.extras)
+        }
+      } catch { /* 离线时静默，等下次修改再试 */ }
+      finally { syncingRef.current = false }
+    })()
+    return () => { alive = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [giteeReady])
+
+  /** 本地变更后 3 秒防抖提交，避免连续编辑产生大量 commit。 */
+  useEffect(() => {
+    if (!ws.ready || !giteeRef.current) return
+    if (skipPushRef.current) { skipPushRef.current = false; return }
+    const config = giteeRef.current
+    const timer = setTimeout(() => {
+      if (syncingRef.current) return
+      syncingRef.current = true
+      void createGiteeSync(config, fetch)
+        .push(buildSyncPayload(ws.todos, ws.extras))
+        .catch(() => undefined)
+        .finally(() => { syncingRef.current = false })
+    }, 3000)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ws.todos, ws.extras, ws.ready])
+
   const confirmDialog = deleting && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setDeleting(null) }}>
     <div className="confirm-dialog" role="alertdialog" aria-modal="true" aria-label="删除任务">
       <h2>移到垃圾桶？</h2>
@@ -455,6 +527,7 @@ export default function App() {
   </div>
 
   const profilesDialog = profilesOpen && ws.profiles && <ProfileDialog
+    anchored
     dir={ws.profiles.dir}
     activeId={ws.profiles.activeId}
     profiles={ws.profiles.profiles}
@@ -499,6 +572,7 @@ export default function App() {
     onExportPersonal={(kind) => { void window.focusDesktop?.exportPersonal(kind).then((result) => { if (!result.canceled) setError(result.message || '') }) }}
     onImportPersonal={() => { void window.focusDesktop?.importPersonal().then((result) => { if (!result.canceled) setError(result.message || '') }) }}
     onOpenProfile={() => { setSettingsOpen(false); setProfilesOpen(true) }}
+    onGiteeChanged={() => setGiteeReady((value) => value + 1)}
     onReveal={() => { void profileHandlers.reveal() }}
     onClose={() => setSettingsOpen(false)}
   />
@@ -537,7 +611,7 @@ export default function App() {
       navOrder={ws.extras.preferences.navOrder}
       navHidden={ws.extras.preferences.navHidden}
     />
-    <Sidebar visible={sidebarVisible} view={view} todos={todos} lists={lists} onNavigate={setView} onAddList={addList} />
+    <Sidebar visible={sidebarVisible} view={view} todos={todos} lists={lists} onNavigate={setView} onAddList={addList} profileName={ws.profile.name} onProfile={() => setProfilesOpen(true)} />
     <main className="workspace">
       <TopBar
         title={title}

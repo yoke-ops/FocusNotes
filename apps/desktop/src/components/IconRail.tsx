@@ -1,6 +1,7 @@
 import {
   CalendarDays,
   CheckSquare,
+  NotebookPen,
   Flame,
   LayoutGrid,
   Search,
@@ -10,7 +11,7 @@ import {
   Moon,
   Timer,
   Gauge,
-  NotebookPen,
+  Notebook,
 } from 'lucide-react'
 import type { NavId } from '@focusnotes/core'
 import type { ViewId } from '../navigation'
@@ -31,6 +32,7 @@ interface IconRailProps {
 
 const NAV_DEFS: Record<NavId, { id: NavId; label: string; icon: typeof CalendarDays }> = {
   today: { id: 'today', label: '今天', icon: CheckSquare },
+  memos: { id: 'memos', label: '备忘录', icon: NotebookPen },
   pomodoro: { id: 'pomodoro', label: '番茄专注', icon: Timer },
   habits: { id: 'habits', label: '习惯', icon: Flame },
   calendar: { id: 'calendar', label: '日历', icon: CalendarDays },
@@ -38,17 +40,22 @@ const NAV_DEFS: Record<NavId, { id: NavId; label: string; icon: typeof CalendarD
   widgets: { id: 'widgets', label: '概览', icon: Gauge },
   search: { id: 'search', label: '搜索', icon: Search },
   assistant: { id: 'assistant', label: 'AI 助手', icon: Sparkles },
-  notes: { id: 'notes', label: '备忘录', icon: NotebookPen },
+  notes: { id: 'notes', label: '本地便笺', icon: Notebook },
 }
 
 export function IconRail({ view, theme, profileName, onNavigate, onSearch, onSettings, onProfile, onToggleTheme, navOrder, navHidden }: IconRailProps) {
   const isActive = (id: ViewId) => view === id || (id === 'today' && (view === 'recent' || view === 'inbox' || view.startsWith('list:') || view.startsWith('tag:')))
-  const items = navOrder.filter((id) => !navHidden.includes(id)).map((id) => NAV_DEFS[id]).filter(Boolean)
+  // 渲染层兜底：navOrder 缺失的导航项也要显示，避免旧数据导致新功能不可见。
+  const orderedNav = [
+    ...navOrder.filter((id) => NAV_DEFS[id]),
+    ...(Object.keys(NAV_DEFS) as NavId[]).filter((id) => !navOrder.includes(id)),
+  ]
+  const items = orderedNav.filter((id) => !navHidden.includes(id)).map((id) => NAV_DEFS[id]).filter(Boolean)
   const selectedIndex = items.findIndex((item) => isActive(item.id as ViewId))
   const handle = (id: NavId) => id === 'search' ? onSearch() : onNavigate(id as ViewId)
   return (
     <nav className="icon-rail" aria-label="主导航">
-      <button className="rail-avatar" onClick={onProfile} title={`记录档案：${profileName}`} aria-label="切换记录档案">
+      <button className="rail-avatar" onClick={onProfile} title={`记录档案：${profileName}（在左上角侧栏展开）`} aria-label="切换记录档案">
         <span>{(profileName || 'F').slice(0, 1).toUpperCase()}</span>
       </button>
       <div className="rail-group rail-navigation">

@@ -1,5 +1,6 @@
 export type ViewId =
   | 'today'
+  | 'memos'
   | 'recent'
   | 'inbox'
   | 'completed'

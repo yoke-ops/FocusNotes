@@ -1,9 +1,9 @@
 {
   "name": "@focusnotes/desktop",
-  "version": "2.3.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
-  "description": "跨平台智能待办便笺",
+  "description": "\u8de8\u5e73\u53f0\u667a\u80fd\u5f85\u529e\u4fbf\u7b3a",
   "author": "FocusNotes",
   "main": "electron/main.cjs",
   "scripts": {
@@ -14,7 +14,7 @@
     "dist": "npm run build && electron-builder --win nsis"
   },
   "dependencies": {
-    "@focusnotes/core": "1.0.0",
+    "@focusnotes/core": "0.1.1",
     "lucide-react": "^0.468.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
@@ -33,11 +33,12 @@
   "build": {
     "appId": "com.focusnotes.desktop",
     "productName": "FocusNotes",
-    "directories": { "output": "release-230b" },
+    "directories": {
+      "output": "release-011e"
+    },
     "asar": true,
     "compression": "maximum",
     "npmRebuild": false,
-    "electronLanguages": ["zh-CN", "en-US"],
     "files": [
       "dist/**/*",
       "electron/**/*",
@@ -47,7 +48,14 @@
       "!**/*.md"
     ],
     "win": {
-      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "electron/icon.ico",
       "signAndEditExecutable": false
     },

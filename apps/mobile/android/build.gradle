@@ -1,3 +1,11 @@
+// 签名凭据只从 local.properties（已 gitignore）读取，绝不写入入库的 gradle.properties。
+def signingProps = new Properties()
+def signingPropsFile = rootProject.file('local.properties')
+if (signingPropsFile.exists()) {
+    signingPropsFile.withInputStream { signingProps.load(it) }
+}
+rootProject.ext.signingProps = signingProps
+
 allprojects {
     repositories {
         google()

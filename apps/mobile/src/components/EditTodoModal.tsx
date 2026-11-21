@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { ActivityIndicator, Modal, StyleSheet } from 'react-native'
+import { ActivityIndicator, Modal, StyleSheet, TextInput as RNTextInput } from 'react-native'
+import Slider from '@react-native-community/slider'
 import {
   ThemedKeyboardAvoidingView as KeyboardAvoidingView,
   ThemedPressable as Pressable,
@@ -36,6 +37,7 @@ export function EditTodoModal({ todo, lists, defaultListId, defaultDueAt, defaul
   const [listId, setListId] = useState(todo?.listId ?? defaultListId ?? 'inbox')
   const [saving, setSaving] = useState(false)
   const [calendarBusy, setCalendarBusy] = useState(false)
+  const [customReminder, setCustomReminder] = useState('')
   const [error, setError] = useState('')
 
   async function save() {
@@ -67,10 +69,17 @@ export function EditTodoModal({ todo, lists, defaultListId, defaultDueAt, defaul
           <Text style={styles.label}>备注</Text><TextInput style={[styles.input, styles.notes]} value={notes} onChangeText={setNotes} placeholder="补充一些细节（可选）" placeholderTextColor="#8e8d93" multiline />
           <Text style={styles.label}>截止时间</Text><DueField value={dueAt} onChange={setDueAt} />
           {dueAt && <Pressable style={styles.calendarButton} onPress={() => void addToCalendar()} disabled={calendarBusy}><CalendarPlus size={16} color="#0071e3" /><Text style={styles.calendarButtonText}>{calendarBusy ? '正在打开日历…' : '添加到系统日历'}</Text></Pressable>}
-          <Text style={styles.label}>提前提醒</Text>
-          <View style={styles.reminderOptions}>{([
-            [0, '关闭'], [5, '5 分钟'], [10, '10 分钟'], [15, '15 分钟'], [30, '30 分钟'], [60, '1 小时'], [1440, '1 天'],
-          ] as Array<[number, string]>).map(([minutes, label]) => <Pressable key={minutes} style={[styles.reminderOption, reminderMinutesBefore === minutes && styles.reminderOptionSelected]} onPress={() => setReminderMinutesBefore(minutes)}><Text style={[styles.reminderText, reminderMinutesBefore === minutes && styles.reminderTextSelected]}>{label}</Text></Pressable>)}</View>
+          <Text style={styles.label}>提前提醒{reminderMinutesBefore > 0 ? ` · ${reminderMinutesBefore} 分钟前` : ' · 关闭'}</Text>
+          <Slider style={styles.reminderSlider} minimumValue={0} maximumValue={240} step={5}
+            value={Math.min(240, reminderMinutesBefore)} onSlidingComplete={(value) => { setReminderMinutesBefore(Math.round(value)); setCustomReminder('') }}
+            minimumTrackTintColor="#0071e3" maximumTrackTintColor="#d1d1d6" thumbTintColor="#0071e3" />
+          <Text style={styles.reminderScale}><Text>关闭</Text><Text>240 分钟</Text></Text>
+          <View style={styles.customReminderRow}>
+            <RNTextInput style={styles.customReminderInput} keyboardType="number-pad" value={customReminder}
+              placeholder="自定义分钟数（0–10080）" placeholderTextColor="#8e8d93"
+              onChangeText={(text) => { setCustomReminder(text); const value = Number(text); if (text && Number.isFinite(value)) setReminderMinutesBefore(Math.max(0, Math.min(10080, Math.round(value)))) }} />
+            {customReminder !== '' && <Pressable style={styles.customReminderClear} onPress={() => { setCustomReminder(''); setReminderMinutesBefore(defaultReminderMinutesBefore) }}><Text style={styles.customReminderClearText}>重置</Text></Pressable>}
+          </View>
           <Text style={styles.label}>所属清单</Text><View style={styles.listOptions}>
             {lists.map((list) => <Pressable key={list.id} style={[styles.listOption, listId === list.id && styles.selectedListOption]} onPress={() => setListId(list.id)}>
               <View style={[styles.listDot, { backgroundColor: list.color }]} />
@@ -100,7 +109,12 @@ const styles = StyleSheet.create({
   notes: { minHeight: 100, paddingTop: 13, textAlignVertical: 'top' },
   calendarButton: { minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 8, paddingHorizontal: 13, borderRadius: 10, backgroundColor: '#eef6ff' },
   calendarButtonText: { color: '#0071e3', fontSize: 13, fontWeight: '600' },
-  reminderOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  reminderSlider: { width: '100%', height: 40, marginTop: 2 },
+  reminderScale: { flexDirection: 'row', justifyContent: 'space-between', color: '#8e8d93', fontSize: 10 },
+  customReminderRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
+  customReminderInput: { flex: 1, minHeight: 40, paddingHorizontal: 12, color: '#1d1d1f', fontSize: 13, borderRadius: 9, backgroundColor: '#f5f5f7' },
+  customReminderClear: { paddingHorizontal: 10, minHeight: 40, justifyContent: 'center' },
+  customReminderClearText: { color: '#0071e3', fontSize: 12 },
   reminderOption: { minHeight: 35, justifyContent: 'center', paddingHorizontal: 11, borderRadius: 18, backgroundColor: '#f5f5f7' },
   reminderOptionSelected: { backgroundColor: '#eaf3ff' },
   reminderText: { color: '#6e6e73', fontSize: 11 },

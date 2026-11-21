@@ -8,6 +8,7 @@ import {
   isHabitScheduled,
   startOfDay,
   type Habit,
+  type TodayCompletion,
   type TodoItem,
   type TodoList,
   type WidgetKind,
@@ -20,6 +21,7 @@ interface WidgetViewProps {
   lists: TodoList[]
   habits: Habit[]
   habitLogs: Record<string, string[]>
+  completion: TodayCompletion
   onNavigate: (view: ViewId) => void
   onToggleTask: (id: string) => void
   onToggleHabit: (habitId: string, day: string) => void
@@ -34,7 +36,7 @@ const META: Record<WidgetKind, { title: string; icon: typeof ListTodo; view: Vie
   assistant: { title: 'AI 助手', icon: Bot, view: 'assistant' },
 }
 
-export function WidgetView({ widgets, tasks, lists, habits, habitLogs, onNavigate, onToggleTask, onToggleHabit }: WidgetViewProps) {
+export function WidgetView({ widgets, tasks, lists, habits, habitLogs, completion, onNavigate, onToggleTask, onToggleHabit }: WidgetViewProps) {
   const open = tasks.filter((todo) => !todo.deleted && !todo.completed)
   const today = dateKey(new Date())
   const dueToday = open.filter((todo) => todo.dueAt && dateKey(todo.dueAt) === today)
@@ -56,6 +58,12 @@ export function WidgetView({ widgets, tasks, lists, habits, habitLogs, onNavigat
 
   return (
     <div className="widget-view">
+      <section className="widget-card widget-completion">
+        <header><span><Check size={15} /> 今日完成</span><strong className="widget-completion-total">{completion.total}</strong></header>
+        <div className="widget-completion-detail">
+          <span>待办 {completion.tasks}</span><span>习惯 {completion.habits}</span><span>番茄 {completion.pomodoros}</span>
+        </div>
+      </section>
       {widgets.map((kind) => {
         const meta = META[kind]
         const Icon = meta.icon

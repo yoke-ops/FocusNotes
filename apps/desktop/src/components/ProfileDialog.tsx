@@ -5,6 +5,7 @@ import type { ProfileSummary } from '../desktop'
 export interface ActionResult { ok: boolean; message: string }
 
 interface Props {
+  anchored?: boolean
   dir: string
   activeId: string
   profiles: ProfileSummary[]
@@ -25,7 +26,7 @@ function formatStamp(value: string): string {
   return date.toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
-export function ProfileDialog({ dir, activeId, profiles, fallback, onClose, onSwitch, onCreate, onRename, onDelete, onExport, onImport, onReveal }: Props) {
+export function ProfileDialog({ anchored, dir, activeId, profiles, fallback, onClose, onSwitch, onCreate, onRename, onDelete, onExport, onImport, onReveal }: Props) {
   const [draftName, setDraftName] = useState('')
   const [renamingId, setRenamingId] = useState('')
   const [renameValue, setRenameValue] = useState('')
@@ -65,10 +66,10 @@ export function ProfileDialog({ dir, activeId, profiles, fallback, onClose, onSw
     if (result.ok) setRenamingId('')
   }
 
-  return <div className="dialog-backdrop" onClick={(event) => { if (event.target === event.currentTarget) onClose() }}>
-    <div className="profile-dialog" role="dialog" aria-modal="true" aria-label="记录档案">
-      <div className="dialog-heading">
-        <h2>记录档案</h2>
+  return <div className={anchored ? 'profile-anchor-backdrop' : 'modal-backdrop'} onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
+    <div className={`profile-dialog${anchored ? ' anchored' : ' modal'}`} role="dialog" aria-modal="true" aria-label="记录档案">
+      <div className="modal-head">
+        <div><span className="modal-kicker">PROFILES</span><h2>记录档案</h2></div>
         <button className="icon-button small" onClick={onClose} aria-label="关闭"><X size={16} /></button>
       </div>
       <p className="profile-intro">每个档案是一份独立记录，保存在本机专用文件夹中。切换档案即可在不同使用者之间切换。</p>

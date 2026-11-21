@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { CheckCircle2, Folder, Hash, Inbox, ListChecks, NotebookPen, Plus, Trash2 } from 'lucide-react'
+import { CheckCircle2, ChevronDown, Folder, Hash, Inbox, ListChecks, NotebookPen, Plus, Trash2, UserRound } from 'lucide-react'
 import { addDays, dateKey, type TodoItem, type TodoList } from '@focusnotes/core'
 import { listViewId, tagViewId, type ViewId } from '../navigation'
 
@@ -10,12 +10,14 @@ interface SidebarProps {
   lists: TodoList[]
   onNavigate: (view: ViewId) => void
   onAddList: (name: string) => void
+  profileName: string
+  onProfile: () => void
 }
 
 function countActive(todos: TodoItem[]): number {
   return todos.filter((todo) => !todo.completed && !todo.deleted).length
 }
-export function Sidebar({ visible, view, todos, lists, onNavigate, onAddList }: SidebarProps) {
+export function Sidebar({ visible, view, todos, lists, onNavigate, onAddList, profileName, onProfile }: SidebarProps) {
   const [adding, setAdding] = useState(false)
   const [name, setName] = useState('')
 
@@ -73,6 +75,11 @@ export function Sidebar({ visible, view, todos, lists, onNavigate, onAddList }: 
           <small>专注 · 待办 · 习惯</small>
         </div>
       </div>
+      <button className="sidebar-profile" onClick={onProfile} title="切换记录档案" aria-label="切换记录档案">
+        <UserRound size={15} />
+        <span className="sidebar-profile-name">{profileName || '默认档案'}</span>
+        <ChevronDown size={13} />
+      </button>
 
       <div className="sidebar-scroll">
         <div className="smart-list">

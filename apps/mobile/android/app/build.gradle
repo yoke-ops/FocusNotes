@@ -21,16 +21,21 @@ android {
         applicationId "com.focusnotes"
         minSdk rootProject.ext.minSdkVersion
         targetSdk rootProject.ext.targetSdkVersion
-        versionCode 5
-        versionName "2.5.0"
+        versionCode 4
+        versionName "0.1.1"
     }
     buildFeatures { buildConfig true }
     signingConfigs {
         release {
-            storeFile file(project.findProperty("FN_RELEASE_STORE_FILE") ?: "focusnotes-release.jks")
-            storePassword project.findProperty("FN_RELEASE_STORE_PASSWORD") ?: ""
-            keyAlias project.findProperty("FN_RELEASE_KEY_ALIAS") ?: "focusnotes"
-            keyPassword project.findProperty("FN_RELEASE_KEY_PASSWORD") ?: ""
+            def props = rootProject.ext.signingProps
+            storeFile file(props.getProperty("FN_RELEASE_STORE_FILE", "focusnotes-release.jks"))
+            storePassword props.getProperty("FN_RELEASE_STORE_PASSWORD", "")
+            keyAlias props.getProperty("FN_RELEASE_KEY_ALIAS", "focusnotes")
+            keyPassword props.getProperty("FN_RELEASE_KEY_PASSWORD", "")
+            enableV1Signing true
+            enableV2Signing true
+            enableV3Signing true
+            enableV4Signing false
         }
     }
     buildTypes {

@@ -1,3 +1,4 @@
+import { normalizeMemos } from './memo'
 import type {
   FocusSession,
   FontId,
@@ -44,12 +45,13 @@ export const DEFAULT_PREFERENCES: WorkspacePreferences = {
   sound: true,
   font: 'system',
   widget: { material: 'frosted', opacity: 100, glassTransparency: 28, darkMode: 'system', alwaysOnTop: true, snap: 'top-right', fontSize: 100 },
-  navOrder: ['today', 'pomodoro', 'habits', 'calendar', 'quadrant', 'widgets', 'search', 'assistant', 'notes'],
+  navOrder: ['today', 'memos', 'pomodoro', 'habits', 'calendar', 'quadrant', 'widgets', 'search', 'assistant', 'notes'],
   navHidden: [],
 }
 
 export const NAV_ITEMS: Array<{ id: NavId; label: string }> = [
   { id: 'today', label: '今天' },
+  { id: 'memos', label: '备忘录' },
   { id: 'pomodoro', label: '番茄专注' },
   { id: 'habits', label: '习惯' },
   { id: 'calendar', label: '日历' },
@@ -57,7 +59,7 @@ export const NAV_ITEMS: Array<{ id: NavId; label: string }> = [
   { id: 'widgets', label: '概览' },
   { id: 'search', label: '搜索' },
   { id: 'assistant', label: 'AI 助手' },
-  { id: 'notes', label: '备忘录' },
+  { id: 'notes', label: '本地便笺' },
 ]
 
 export const FONT_OPTIONS: Array<{ id: FontId; label: string; family: string; category: '无衬线' | '衬线' | '系统' }> = [
@@ -81,6 +83,7 @@ export function createDefaultExtras(now = new Date()): WorkspaceExtras {
     habits: [],
     habitLogs: {},
     focusSessions: [],
+    memos: [],
     preferences: { ...DEFAULT_PREFERENCES },
     widgets: ['tasks'],
   }
@@ -222,6 +225,44 @@ export interface FocusStats {
   totalCount: number
   totalMinutes: number
   weekMinutes: number
+}
+
+/** 今日完成计数：待办完成数 + 习惯打卡数 + 番茄数。 */
+export interface TodayCompletion {
+  tasks: number
+  habits: number
+  pomodoros: number
+  total: number
+}
+
+/** 睡眠定时剩余毫秒；无效输入或已到期返回 <= 0。 */
+export function sleepTimerRemaining(startedAt: string | number, durationMinutes: number, now: string | number | Date = new Date()): number {
+  const start = typeof startedAt === 'number' ? startedAt : Date.parse(startedAt)
+  const current = now instanceof Date ? now.getTime() : typeof now === 'number' ? now : Date.parse(now)
+  if (!Number.isFinite(start) || !Number.isFinite(current) || !Number.isFinite(durationMinutes) || durationMinutes <= 0) return 0
+  return start + durationMinutes * 60_000 - current
+}
+
+/** 提前提醒分钟数钳制：0–10080 整数，非法值返回 null。 */
+export function clampReminderMinutes(value: unknown, max = 10080): number | null {
+  if (value === null || value === undefined) return null
+  const minutes = Number(value)
+  if (!Number.isFinite(minutes)) return null
+  return Math.max(0, Math.min(max, Math.round(minutes)))
+}
+
+/** 聚合今日完成：待办（当天完成且未删除）+ 习惯（当天安排且已打卡）+ 番茄（当天 focus 会话）。 */
+export function todayCompletion(input: {
+  todos: readonly Pick<TodoItem, 'completed' | 'completedAt' | 'deleted'>[]
+  habits: readonly Habit[]
+  habitLogs: Record<string, string[]>
+  sessions: readonly FocusSession[]
+}, now: Date = new Date()): TodayCompletion {
+  const today = dateKey(now)
+  const tasks = input.todos.filter((item) => item.completed && !item.deleted && item.completedAt && dateKey(item.completedAt) === today).length
+  const habits = input.habits.filter((item) => !item.archived && isHabitScheduled(item, now) && (input.habitLogs[item.id] ?? []).includes(today)).length
+  const pomodoros = input.sessions.filter((item) => item.mode === 'focus' && dateKey(item.startedAt) === today).length
+  return { tasks, habits, pomodoros, total: tasks + habits + pomodoros }
 }
 
 export function focusStats(sessions: readonly FocusSession[], now = new Date()): FocusStats {
@@ -393,10 +434,13 @@ export function normalizeExtras(value: unknown, now = new Date()): WorkspaceExtr
   const snap = widgetPref.snap
   const validNav = NAV_ITEMS.map((item) => item.id)
   const rawOrder = Array.isArray(prefRecord.navOrder) ? prefRecord.navOrder.filter((id): id is NavId => validNav.includes(id as NavId)) : []
-  const navOrder = [...new Set([...rawOrder, ...validNav.filter((id) => !rawOrder.includes(id))])]
-  const navHidden = Array.isArray(prefRecord.navHidden)
+  // 补齐新增导航项时插到「今天」之后，避免被追加到列表末尾而看不见。
+  const missing = validNav.filter((id) => !rawOrder.includes(id))
+  const navOrder = [...new Set([...rawOrder.slice(0, 1), ...missing, ...rawOrder.slice(1)])]
+  // 搜索按钮默认隐藏：旧数据里 navHidden 为空时也套用此默认，用户可在设置里重新开启。
+  const navHidden = Array.isArray(prefRecord.navHidden) && prefRecord.navHidden.length > 0
     ? [...new Set(prefRecord.navHidden.filter((id): id is NavId => validNav.includes(id as NavId)))]
-    : []
+    : ['search' as NavId]
   const preferences: WorkspacePreferences = {
     pomodoroMinutes: numberIn(prefRecord.pomodoroMinutes, DEFAULT_PREFERENCES.pomodoroMinutes, 1, 180),
     shortBreakMinutes: numberIn(prefRecord.shortBreakMinutes, DEFAULT_PREFERENCES.shortBreakMinutes, 1, 60),
@@ -427,5 +471,7 @@ export function normalizeExtras(value: unknown, now = new Date()): WorkspaceExtr
   }
   if (!widgets.length) widgets.push('tasks')
 
-  return { version: 2, lists, habits, habitLogs, focusSessions, preferences, widgets }
+  const memos = normalizeMemos(record.memos)
+
+  return { version: 2, lists, habits, habitLogs, focusSessions, memos, preferences, widgets }
 }

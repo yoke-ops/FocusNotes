@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">FocusNotes</string>
+    <string name="widget_1x1">FocusNotes · 今日数量</string>
+    <string name="widget_1x2">FocusNotes · 单条待办</string>
+    <string name="widget_2x2">FocusNotes · 待办清单</string>
+    <string name="widget_2x4">FocusNotes · 待办与习惯</string>
 </resources>
